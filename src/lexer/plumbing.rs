@@ -5,97 +5,105 @@ use crate::lexer::Lexer;
 use crate::source::LineCol;
 
 impl<'a, 'src> Lexer<'a, 'src> {
-    #[inline]
-    pub const fn src(&self) -> &'src [u8] {
-        self.src.as_bytes()
+    #[inline(always)]
+    pub fn len(&self) -> usize {
+        unsafe { self.limit.offset_from(self.base) as usize }
     }
 
-    #[inline]
-    pub const fn is_oob(&self, index: usize) -> bool {
-        index >= self.src().len()
+    #[inline(always)]
+    pub fn offset(&self) -> usize {
+        unsafe { self.cursor.offset_from(self.base) as usize }
     }
 
-    #[inline]
-    pub const fn is_index_oob(&self) -> bool {
-        self.is_oob(self.index)
-    }
-
-    #[inline]
-    pub const fn is_at_end(&self) -> bool {
-        unlikely(self.is_index_oob())
+    #[inline(always)]
+    pub fn is_at_end(&self) -> bool {
+        unlikely(self.cursor >= self.limit)
     }
 
     /// # @Safety
     ///
-    /// `self.is_oob(index)` be false.
-    #[inline]
-    pub unsafe fn assert_within_bounds(&self, index: usize) {
+    /// `p` must be within the allocated range of VexationSource.
+    #[inline(always)]
+    pub unsafe fn assert_ptr_valid(&self, p: *const u8) {
         unsafe {
-            assert_unchecked(!self.is_oob(index));
-            let _ = *self.src().get_unchecked(index);
+            let end_of_buffer = self.limit.add(3);
+            assert_unchecked(p >= self.base && p < end_of_buffer);
         }
     }
 
     /// # @Safety
     ///
-    /// `self.is_oob(index)` be false.
-    #[inline]
-    pub unsafe fn index_unchecked(&self, index: usize) -> u8 {
-        unsafe {
-            self.assert_within_bounds(index);
-            *self.src().get_unchecked(index)
-        }
-    }
-
-    #[inline]
-    pub fn index(&self, index: usize) -> Option<u8> {
-        self.src().get(index).copied()
-    }
-
-    /// You may be at the end after this function returns.
+    /// You may be at end, 1-past-end or 2-past-end. 3-past-end and above is UB.
+    /// ```
+    /// [0, 0, 0]
+    ///  ^  ^  ^ safe
+    /// end 1  2
     ///
-    /// # @Safety
-    ///
-    /// `self.is_at_end()` be false.
+    /// [0, 0, 0]
+    ///           ^ danger!
+    /// ```
     #[inline]
     pub unsafe fn incr_index_unchecked(&mut self) {
         unsafe {
-            self.index = self.index.unchecked_add(1);
+            self.cursor = self.cursor.add(1);
         }
     }
 
     /// # @Safety
     ///
-    /// `self.is_at_end()` be false.
-    #[inline]
+    /// You may be at end, 1-past-end or 2-past-end. 3-past-end and above is UB.
+    /// ```
+    /// [0, 0, 0]
+    ///  ^  ^  ^ safe
+    /// end 1  2
+    ///
+    /// [0, 0, 0]
+    ///           ^ danger!
+    /// ```
+    #[inline(always)]
     pub unsafe fn peek_unchecked(&self) -> u8 {
         unsafe {
-            self.assert_within_bounds(self.index);
-            self.index_unchecked(self.index)
+            self.assert_ptr_valid(self.cursor);
+            *self.cursor
         }
     }
 
     #[inline]
-    pub fn peek(&self) -> Option<u8> {
-        if self.is_at_end() {
-            None
-        } else {
-            Some(unsafe { self.peek_unchecked() })
-        }
-    }
-
-    #[inline]
-    pub fn peek_next(&self) -> Option<u8> {
-        self.index(self.index + 1)
+    pub unsafe fn peek_next(&self) -> u8 {
+        unsafe { *self.cursor.add(1) }
     }
 
     /// You may be at the end after this function returns.
     ///
     /// # @Safety
     ///
-    /// `self.is_at_end()` be false.
+    /// You may be at end, 1-past-end or 2-past-end. 3-past-end and above is UB.
+    /// ```
+    /// [0, 0, 0]
+    ///  ^  ^  ^ safe
+    /// end 1  2
+    ///
+    /// [0, 0, 0]
+    ///           ^ danger!
+    /// ```
     #[inline]
     pub unsafe fn advance_unchecked(&mut self) -> u8 {
+        #[cfg(debug_assertions)]
+        {
+            let limit_addr = self.limit as isize;
+            let cursor_addr = self.cursor as isize;
+            let diff = cursor_addr - limit_addr;
+
+            if diff < 0 {
+            } else if diff == 0 {
+                eprintln!("[DEBUG] at end");
+            } else {
+                eprintln!("[DEBUG] {} bytes past end", diff);
+                if diff >= 3 {
+                    eprintln!("[DEBUG]: warning! {} bytes past end.", diff);
+                }
+            }
+        }
         unsafe {
             let res = self.peek_unchecked();
             self.incr_index_unchecked();
@@ -104,21 +112,20 @@ impl<'a, 'src> Lexer<'a, 'src> {
     }
 
     /// You may be at the end after this function returns.
+    ///
+    /// # @Safety
+    ///
+    /// You may be at end, 1-past-end or 2-past-end. 3-past-end and above is UB.
+    /// ```
+    /// [0, 0, 0]
+    ///  ^  ^  ^ safe
+    /// end 1  2
+    ///
+    /// [0, 0, 0]
+    ///           ^ danger!
+    /// ```
     #[inline]
-    pub fn advance(&mut self) -> Option<u8> {
-        if self.is_at_end() {
-            None
-        } else {
-            Some(unsafe { self.advance_unchecked() })
-        }
-    }
-
-    /// You may be at the end after this function returns.
-    #[inline]
-    pub fn matches(&mut self, expected: u8) -> bool {
-        if self.is_at_end() {
-            return false;
-        }
+    pub unsafe fn matches_unchecked(&mut self, expected: u8) -> bool {
         unsafe {
             if self.peek_unchecked() == expected {
                 self.incr_index_unchecked();
@@ -129,7 +136,6 @@ impl<'a, 'src> Lexer<'a, 'src> {
         }
     }
 
-    /// Lazy line/column tracking to avoid inflating lexer size.
     #[inline]
     pub fn location(&self) -> LineCol {
         todo!("Lexer::location")

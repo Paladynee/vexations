@@ -9,6 +9,7 @@ mod zero_lit;
 
 use core::fmt;
 use core::fmt::Display;
+use std::marker::PhantomData;
 
 use crate::source::LineCol;
 use crate::source::VexationsSource;
@@ -49,18 +50,22 @@ pub fn lex<'src>(
 }
 
 pub struct Lexer<'a, 'src> {
-    src: &'a VexationsSource<'src>,
-    start: usize,
-    index: usize,
+    base: *const u8,
+    limit: *const u8,
+    start: *const u8,
+    cursor: *const u8,
+    _phantom: PhantomData<&'a VexationsSource<'src>>,
 }
 
 impl<'a, 'src> Lexer<'a, 'src> {
     #[inline]
     pub const fn new(src: &'a VexationsSource<'src>) -> Self {
         Lexer {
-            src,
-            start: 0,
-            index: 0,
+            base: src.base_ptr(),
+            limit: src.end_ptr(),
+            start: src.base_ptr(),
+            cursor: src.base_ptr(),
+            _phantom: PhantomData,
         }
     }
 
@@ -69,7 +74,7 @@ impl<'a, 'src> Lexer<'a, 'src> {
     /// # @Safety
     ///
     /// `self.skip_whitespace()` must have been called prior
-    /// `self.is_at_end()` be false.
+    /// `self.is_at_end()` must be false.
     /// `self.start == self.index`
     #[inline]
     pub unsafe fn lex_one(
@@ -80,6 +85,8 @@ impl<'a, 'src> Lexer<'a, 'src> {
         let c = unsafe { self.advance_unchecked() };
 
         // we may be at the end here
+        // [0, 0, 0]
+        //  ^
 
         tokens.reserve(1);
         errors.reserve(1);
@@ -91,6 +98,11 @@ impl<'a, 'src> Lexer<'a, 'src> {
                 self, c, tokens, errors, idents,
             )
         };
+
+        // currently, we may be 2-past end here. theoretically, the above
+        // dispatcher could let us end up with 3-past-end. that is still
+        // safe, and luckily these functions all return back to the main
+        // !self.is_at_end() loop within `Lexer::lex_all`.
     }
 
     #[inline]
@@ -102,6 +114,8 @@ impl<'a, 'src> Lexer<'a, 'src> {
             self.skip_whitespace(errors);
 
             // we may be at end here
+            // [0, 0, 0]
+            //     ^
 
             if self.is_at_end() {
                 return;
@@ -109,10 +123,10 @@ impl<'a, 'src> Lexer<'a, 'src> {
 
             // we can NOT be at end here
 
-            self.start = self.index;
+            self.start = self.cursor;
             unsafe {
-                self.assert_within_bounds(self.index);
-                self.assert_within_bounds(self.start);
+                self.assert_ptr_valid(self.cursor);
+                self.assert_ptr_valid(self.start);
                 self.lex_one(tokens, errors, idents);
             }
         }

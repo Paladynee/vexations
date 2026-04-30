@@ -4,6 +4,8 @@ use crate::lexer::LexerErrorKind;
 
 impl<'a, 'src> Lexer<'a, 'src> {
     /// You may be at the end after this function returns.
+    /// [0, 0, 0]
+    ///  ^
     ///
     /// # @Safety
     ///
@@ -16,13 +18,13 @@ impl<'a, 'src> Lexer<'a, 'src> {
         // consuming the first /
         // @SAFETY: loop condition + no modification to
         // lexer yet
-        unsafe { self.incr_index_unchecked() }
+        unsafe { self.incr_index_unchecked() };
 
         // we may NOT be at end here due to peek_next
 
         // consuming the second /
         // @SAFETY: peek_next success
-        unsafe { self.incr_index_unchecked() }
+        unsafe { self.incr_index_unchecked() };
 
         // we may be at end here
 
@@ -42,6 +44,10 @@ impl<'a, 'src> Lexer<'a, 'src> {
     }
 
     /// You may be at the end after this function returns.
+    /// ```
+    /// [0, 0, 0]
+    ///     ^
+    /// ```
     ///
     /// # @Safety
     /// - `self.is_at_end()` must be false.
@@ -63,20 +69,30 @@ impl<'a, 'src> Lexer<'a, 'src> {
         // @SAFETY: peek_next success
         unsafe { self.incr_index_unchecked() }
 
+        // we may be at end here
+        // [0, 0, 0]
+        //  ^
+
         'block_comment: while !self.is_at_end() {
             // @SAFETY: loop condition
             let c = unsafe { self.advance_unchecked() };
 
             // we may be at end here
+            // [0, 0, 0]
+            //  ^
 
             match c {
                 // c ==
                 b'*' => {
-                    if let Some(b'/') = self.advance() {
+                    // @SAFETY: being 1 past end is sound due to
+                    // VexationsSource.
+                    if (unsafe { self.advance_unchecked() }) == b'/' {
                         return;
                     }
 
                     // we may be at end here
+                    // [0, 0, 0]
+                    //     ^
 
                     if self.is_at_end() {
                         errors.push(LexerError {
@@ -102,6 +118,8 @@ impl<'a, 'src> Lexer<'a, 'src> {
         }
 
         // we may be at end here, to be returned
+        // [0, 0, 0]
+        //  ^
 
         if self.is_at_end() {
             errors.push(LexerError {
@@ -114,6 +132,12 @@ impl<'a, 'src> Lexer<'a, 'src> {
     }
 
     /// You may be at the end after this function returns.
+    /// ```
+    /// [0, 0, 0]
+    ///     ^
+    /// ```
+    ///
+    /// If you were at or past the end, your past-end is preserved.
     #[inline]
     pub fn skip_whitespace(&mut self, errors: &mut Vec<LexerError>) {
         'search: while !self.is_at_end() {
@@ -126,25 +150,31 @@ impl<'a, 'src> Lexer<'a, 'src> {
                     unsafe { self.incr_index_unchecked() }
 
                     // we may be at end here
+                    // [0, 0, 0]
+                    //  ^
 
                     continue 'search;
                 }
                 // c ==
                 b'/' => {
-                    match self.peek_next() {
+                    match unsafe { self.peek_next() } {
                         // peek_next ==
-                        Some(b'/') => {
+                        b'/' => {
                             unsafe { self.unconsumed_single_line_comment() };
 
                             // we may be at end here
+                            // [0, 0, 0]
+                            //  ^
 
                             continue 'search;
                         }
                         // peek_next ==
-                        Some(b'*') => {
+                        b'*' => {
                             unsafe { self.unconsumed_block_comment(errors) };
 
                             // we may be at end here
+                            // [0, 0, 0]
+                            //     ^
 
                             continue 'search;
                         }
@@ -165,5 +195,9 @@ impl<'a, 'src> Lexer<'a, 'src> {
         }
 
         // we may be at end here, returned
+        // [0, 0, 0]
+        //     ^
+        // OR
+        // preserved
     }
 }
