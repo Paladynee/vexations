@@ -1,5 +1,11 @@
+mod alnum_lit;
+mod char_lit;
+mod num_lit;
+mod per_char_dispatch;
 mod plumbing;
 mod skip_whitespace;
+mod string_lit;
+mod zero_lit;
 
 use crate::source::LineCol;
 use crate::source::VexationsSource;
@@ -47,6 +53,7 @@ impl<'a, 'src> Lexer<'a, 'src> {
     /// `self.is_at_end()` be false.
     /// `self.start == self.index`
     #[inline]
+    #[rustfmt::skip]
     pub unsafe fn lex_one(
         &mut self, tokens: &mut Vec<TokenKind>, errors: &mut Vec<LexerError>,
         idents: &mut Vec<&'src str>,
@@ -56,48 +63,9 @@ impl<'a, 'src> Lexer<'a, 'src> {
 
         // we may be at the end here
 
-        #[rustfmt::skip]
-        let tok = match c {
-            b'(' => TokenKind::IndentLParen, b')' => TokenKind::IndentRParen,
-            b'{' => TokenKind::IndentLBrace, b'}' => TokenKind::IndentRBrace,
-            b'[' => TokenKind::IndentLBracket, b']' => TokenKind::IndentRBracket,
-            b',' => TokenKind::PuncComma, b'.' => TokenKind::PuncDot,
-            b';' => TokenKind::PuncSemi,
-            b':' => if self.matches(b':') { TokenKind::PuncColonColon } else { TokenKind::PuncColon },
-            b'+' => if self.matches(b'=') { TokenKind::PuncPlusEq } else { TokenKind::PuncPlus },
-            b'-' => if self.matches(b'=') { TokenKind::PuncMinusEq }
-                else if self.matches(b'>') { TokenKind::PuncArrowRight }
-                else { TokenKind::PuncMinus },
-            b'!' => if self.matches(b'=') { TokenKind::PuncBangEq } else { TokenKind::PuncBang },
-            b'*' => if self.matches(b'=') { TokenKind::PuncStarEq } else { TokenKind::PuncStar },
-            // no need to handle comments here, skip_whitespace handles that
-            b'/' => if self.matches(b'=') { TokenKind::PuncSlashEq } else { TokenKind::PuncSlash },
-            b'%' => if self.matches(b'=') { TokenKind::PuncModuloEq } else { TokenKind::PuncModulo },
-            b'^' => if self.matches(b'=') { TokenKind::PuncXorEq } else { TokenKind::PuncXor }
-            b'=' => if self.matches(b'=') { TokenKind::PuncEqEq } else { TokenKind::PuncEq },
-            b'<' => if self.matches(b'=') { TokenKind::PuncLtEq }
-                else if self.matches(b'<') {
-                    if self.matches(b'=') { TokenKind::PuncShlEq }
-                    else { TokenKind::PuncShl }
-                } else { TokenKind::PuncLt },
-            b'>' => if self.matches(b'=') { TokenKind::PuncGtEq }
-                else if self.matches(b'>') {
-                    if self.matches(b'=') { TokenKind::PuncShrEq }
-                    else { TokenKind::PuncShr }
-                } else { TokenKind::PuncGt },
-            b'|' => if self.matches(b'|') { TokenKind::PuncOrOr }
-                else if self.matches(b'=') { TokenKind::PuncOrEq }
-                else { TokenKind::PuncOr },
-            b'&' => if self.matches(b'&') { TokenKind::PuncAndAnd }
-                else if self.matches(b'=') { TokenKind::PuncAndEq }
-                else { TokenKind::PuncAnd },
-            
-            
-            
-            _ => {todo!()},
-        };
-
-        tokens.push(tok);
+        per_char_dispatch::PER_CHAR_FN_TABLE[c as usize](
+            self, c, tokens, errors, idents
+        );
     }
 
     #[inline]
