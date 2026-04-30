@@ -7,18 +7,37 @@ mod skip_whitespace;
 mod string_lit;
 mod zero_lit;
 
+use core::fmt;
+use core::fmt::Display;
+
 use crate::source::LineCol;
 use crate::source::VexationsSource;
 use crate::token::TokenKind;
 
+#[derive(Debug, Clone)]
 pub enum LexerErrorKind {
     UnclosedBlockComment,
+    UnknownCharacter(u8),
 }
 
+#[derive(Debug, Clone)]
 pub struct LexerError {
-    location: LineCol,
-    kind: LexerErrorKind,
+    pub location: LineCol,
+    pub kind: LexerErrorKind,
 }
+
+impl Display for LexerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.kind {
+            LexerErrorKind::UnclosedBlockComment =>
+                write!(f, "unclosed block comment"),
+            LexerErrorKind::UnknownCharacter(c) =>
+                write!(f, "unknown character: '{c:#x}'"),
+        }
+    }
+}
+
+impl core::error::Error for LexerError {}
 
 #[allow(unused)]
 pub fn lex<'src>(
@@ -26,7 +45,7 @@ pub fn lex<'src>(
     errors: &mut Vec<LexerError>, idents: &mut Vec<&'src str>,
 ) {
     let mut lexer = Lexer::new(src);
-    // lexer.lex_all(tokens, errors, idents);
+    lexer.lex_all(tokens, errors, idents);
 }
 
 pub struct Lexer<'a, 'src> {
@@ -53,7 +72,6 @@ impl<'a, 'src> Lexer<'a, 'src> {
     /// `self.is_at_end()` be false.
     /// `self.start == self.index`
     #[inline]
-    #[rustfmt::skip]
     pub unsafe fn lex_one(
         &mut self, tokens: &mut Vec<TokenKind>, errors: &mut Vec<LexerError>,
         idents: &mut Vec<&'src str>,
@@ -63,9 +81,16 @@ impl<'a, 'src> Lexer<'a, 'src> {
 
         // we may be at the end here
 
-        per_char_dispatch::PER_CHAR_FN_TABLE[c as usize](
-            self, c, tokens, errors, idents
-        );
+        tokens.reserve(1);
+        errors.reserve(1);
+        idents.reserve(1);
+
+        // @SAFETY: reserved space for all vectors passed in above
+        unsafe {
+            per_char_dispatch::PER_CHAR_FN_TABLE[c as usize](
+                self, c, tokens, errors, idents,
+            )
+        };
     }
 
     #[inline]

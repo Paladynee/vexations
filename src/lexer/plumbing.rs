@@ -28,12 +28,11 @@ impl<'a, 'src> Lexer<'a, 'src> {
     /// # @Safety
     ///
     /// `self.is_oob(index)` be false.
-    #[warn(clippy::unnecessary_operation)] // shut the fuck up? i know what i'm doing
     #[inline]
     pub unsafe fn assert_within_bounds(&self, index: usize) {
         unsafe {
-            assert_unchecked(!self.is_index_oob());
-            *self.src().get_unchecked(index);
+            assert_unchecked(!self.is_oob(index));
+            let _ = *self.src().get_unchecked(index);
         }
     }
 

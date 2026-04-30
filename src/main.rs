@@ -12,7 +12,11 @@ use crate::source::VexationsSource;
 
 fn main() {
     let args = env::args_os().collect::<Vec<_>>();
-    let src = fs::read(&args[1]).unwrap();
+    // very primitive module loader here:
+    let mut src = fs::read(&args[1]).unwrap();
+    // source extender with 3 zero bytes for performant lexer,
+    // should be handled in module loader
+    src.extend_from_slice(&[0, 0, 0]);
     let Some(source) = VexationsSource::try_from_bytes(src.as_slice()) else {
         eprintln!("file {} is not ascii source!", args[1].display());
         return;
@@ -23,5 +27,7 @@ fn main() {
     let mut idents = vec![];
     lexer::lex(&source, &mut tokens, &mut errors, &mut idents);
 
-    todo!()
+    println!("tokens: {:#?}", tokens);
+    println!("idents: {:#?}", idents);
+    println!("errors: {:#?}", errors);
 }
