@@ -1,9 +1,8 @@
 use crate::compiler::lexer::Lexer;
-use crate::compiler::lexer::error::LexerError;
 use crate::compiler::lexer::error::LexerErrorKind;
 use crate::frontend::token::TokenKind as TK;
 
-pub type PerCharHandler = for<'lx> fn(&mut Lexer<'lx>);
+pub type PerCharHandler = for<'src> fn(&mut Lexer<'src>);
 
 #[allow(unused_unsafe)]
 pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
@@ -14,12 +13,20 @@ pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
 
     macro_rules! h {
         ( raw $char:literal, $kind:ident ) => {
-            handlers[$char as usize] = |l| l.tokens.push(TK::$kind);
+            handlers[$char as usize] = |l| l.push_token(TK::$kind);
         };
+        ( range $start:literal..=$end:literal, $lexer:ident, $($body:tt)* ) => {{
+            let mut c = $start;
+            while c <= $end {
+                h!(c, $lexer, $($body)*);
+                c += 1;
+            }
+        }};
         ( $char:expr, $lexer:pat, $($body:tt)* ) => {
             handlers[$char as usize] = |$lexer| unsafe { $($body)* };
         };
     }
+
     h!(raw b'(', IndentLParen);
     h!(raw b')', IndentRParen);
     h!(raw b'{', IndentLBrace);
@@ -29,136 +36,143 @@ pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
     h!(raw b'.', PuncDot);
     h!(raw b',', PuncComma);
     h!(raw b';', PuncSemi);
+
     h!(b':', l, {
-        if l.matches_unchecked(b':') {
-            l.tokens.push(TK::PuncColonColon);
+        let token = if l.matches_unchecked(b':') {
+            TK::PuncColonColon
         } else {
-            l.tokens.push(TK::PuncColon);
-        }
+            TK::PuncColon
+        };
+        l.push_token(token)
     });
     h!(b'=', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncEqEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncEqEq
         } else {
-            l.tokens.push(TK::PuncEq);
-        }
+            TK::PuncEq
+        };
+        l.push_token(token)
     });
     h!(b'!', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncBangEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncBangEq
         } else {
-            l.tokens.push(TK::PuncBang);
-        }
+            TK::PuncBang
+        };
+        l.push_token(token)
     });
     h!(b'<', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncLtEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncLtEq
         } else if l.matches_unchecked(b'<') {
             if l.matches_unchecked(b'=') {
-                l.tokens.push(TK::PuncShlEq);
+                TK::PuncShlEq
             } else {
-                l.tokens.push(TK::PuncShl);
+                TK::PuncShl
             }
         } else {
-            l.tokens.push(TK::PuncLt);
-        }
+            TK::PuncLt
+        };
+        l.push_token(token)
     });
     h!(b'>', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncGtEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncGtEq
         } else if l.matches_unchecked(b'>') {
             if l.matches_unchecked(b'=') {
-                l.tokens.push(TK::PuncShrEq);
+                TK::PuncShrEq
             } else {
-                l.tokens.push(TK::PuncShr);
+                TK::PuncShr
             }
         } else {
-            l.tokens.push(TK::PuncGt);
-        }
+            TK::PuncGt
+        };
+        l.push_token(token)
     });
     h!(b'+', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncPlusEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncPlusEq
         } else {
-            l.tokens.push(TK::PuncPlus);
-        }
+            TK::PuncPlus
+        };
+        l.push_token(token)
     });
     h!(b'-', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncMinusEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncMinusEq
         } else if l.matches_unchecked(b'>') {
-            l.tokens.push(TK::PuncArrowRight);
+            TK::PuncArrowRight
         } else {
-            l.tokens.push(TK::PuncMinus);
-        }
+            TK::PuncMinus
+        };
+        l.push_token(token)
     });
     h!(b'*', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncStarEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncStarEq
         } else {
-            l.tokens.push(TK::PuncStar);
-        }
+            TK::PuncStar
+        };
+        l.push_token(token)
     });
     h!(b'/', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncSlashEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncSlashEq
         } else if l.peek_unchecked() == b'/' {
             // todo: comments (line comment)
             // don't forget to change above call to matches_unchecked
+            TK::PuncSlash
         } else if l.peek_unchecked() == b'*' {
             // todo: comments (block comment)
             // don't forget to change above call to matches_unchecked
+            TK::PuncSlash
         } else {
-            l.tokens.push(TK::PuncSlash);
-        }
+            TK::PuncSlash
+        };
+        l.push_token(token)
     });
     h!(b'%', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncModuloEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncModuloEq
         } else {
-            l.tokens.push(TK::PuncModulo);
-        }
+            TK::PuncModulo
+        };
+        l.push_token(token)
     });
     h!(b'&', l, {
-        if l.matches_unchecked(b'&') {
-            l.tokens.push(TK::PuncAndAnd);
+        let token = if l.matches_unchecked(b'&') {
+            TK::PuncAndAnd
         } else if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncAndEq);
+            TK::PuncAndEq
         } else {
-            l.tokens.push(TK::PuncAnd);
-        }
+            TK::PuncAnd
+        };
+        l.push_token(token)
     });
     h!(b'|', l, {
-        if l.matches_unchecked(b'|') {
-            l.tokens.push(TK::PuncOrOr);
+        let token = if l.matches_unchecked(b'|') {
+            TK::PuncOrOr
         } else if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncOrEq);
+            TK::PuncOrEq
         } else {
-            l.tokens.push(TK::PuncOr);
-        }
+            TK::PuncOr
+        };
+        l.push_token(token)
     });
     h!(b'^', l, {
-        if l.matches_unchecked(b'=') {
-            l.tokens.push(TK::PuncXorEq);
+        let token = if l.matches_unchecked(b'=') {
+            TK::PuncXorEq
         } else {
-            l.tokens.push(TK::PuncXor);
-        }
+            TK::PuncXor
+        };
+        l.push_token(token)
     });
+
     h!(b'0', l, l.zero_lit());
+    h!(range b'1'..=b'9', l, l.decimal_lit());
 
-    macro_rules! to {
-        ($start:literal..=$end:literal, $lexer:ident, $($body:tt)*) => {{
-            let mut c = $start;
-            while c <= $end {
-                h!(c, $lexer, $($body)*);
-                c += 1;
-            }
-        }};
-    }
-    to!(b'1'..=b'9', l, l.decimal_lit());
-
-    to!(b'a'..=b'z', l, l.wordlike());
-    to!(b'A'..=b'Z', l, l.wordlike());
+    h!(range b'a'..=b'z', l, l.wordlike());
+    h!(range b'A'..=b'Z', l, l.wordlike());
     h!(b'_', l, l.wordlike());
 
     h!(b'\'', l, l.char_lit());

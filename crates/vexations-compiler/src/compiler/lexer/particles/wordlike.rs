@@ -1,5 +1,5 @@
-use std::hint::assert_unchecked;
-use std::hint::unreachable_unchecked;
+use core::hint::assert_unchecked;
+use core::hint::unreachable_unchecked;
 
 use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::error::LexerError;
@@ -10,18 +10,18 @@ impl<'src> Lexer<'src> {
     /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline]
     pub fn wordlike(&mut self) {
-        // usually, the lexer state looks like:
+        // current lexer state looks like:
         // ```_
-        // ['a', '?'...
-        //   ^ start
-        //        ^ index
+        // [a, ?...
+        //  ^ start
+        //     ^ index
         // ```
 
         // callsite PER_CHAR_DISPATCH
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
 
         while !self.is_at_end() {
@@ -43,7 +43,17 @@ impl<'src> Lexer<'src> {
         &mut self, rest: &[u8], expected: &[u8], token: TokenKind,
     ) {
         if rest == expected {
-            self.tokens.push(token);
+            self.push_token(token);
+        }
+    }
+
+    #[cold]
+    pub fn trie_check_rest_ident(
+        &mut self, rest: &[u8], expected: &[u8], token: TokenKind,
+        identifier: &'src str,
+    ) {
+        if rest == expected {
+            self.push_token_with_ident(token, identifier);
         }
     }
 
@@ -161,7 +171,7 @@ impl<'src> Lexer<'src> {
                     }
                 }
 
-                // fn, for
+                // fn, for, false
                 b'f' => {
                     let &[b, ref rest @ ..] = rest else {
                         break 'trie;
@@ -180,6 +190,14 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"r",
                                 TokenKind::KwFor,
+                            ),
+                        // false
+                        b'a' =>
+                            return self.trie_check_rest_ident(
+                                rest,
+                                b"lse",
+                                TokenKind::LitBool,
+                                identifier,
                             ),
                         _ => {}
                     }
@@ -270,13 +288,30 @@ impl<'src> Lexer<'src> {
                     }
                 }
 
-                // type
-                b't' =>
-                    return self.trie_check_rest(
-                        rest,
-                        b"ype",
-                        TokenKind::KwType,
-                    ),
+                // type, true
+                b't' => {
+                    let &[b, ref rest @ ..] = rest else {
+                        break 'trie;
+                    };
+                    match b {
+                        // type
+                        b'y' =>
+                            return self.trie_check_rest(
+                                rest,
+                                b"pe",
+                                TokenKind::KwType,
+                            ),
+                        // true
+                        b'r' =>
+                            return self.trie_check_rest_ident(
+                                rest,
+                                b"ue",
+                                TokenKind::LitBool,
+                                identifier,
+                            ),
+                        _ => {}
+                    }
+                }
 
                 // union
                 b'u' =>
@@ -299,7 +334,6 @@ impl<'src> Lexer<'src> {
         }
 
         // just an identifier
-        self.tokens.push(TokenKind::LitIdentifier);
-        self.idents.push(identifier);
+        self.push_token_with_ident(TokenKind::LitIdentifier, identifier);
     }
 }

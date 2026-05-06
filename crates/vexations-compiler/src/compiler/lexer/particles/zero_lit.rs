@@ -7,39 +7,59 @@ impl<'src> Lexer<'src> {
     /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline]
     pub fn zero_lit(&mut self) {
-        // usually, the lexer state looks like:
+        // current lexer state looks like:
         // ```_
-        // ['0', '?'...
-        //   ^ start
-        //        ^ index
+        // [0, ?...
+        //  ^ start
+        //     ^ index
         // ```
 
         // callsite PER_CHAR_DISPATCHER
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
 
         let c = unsafe { self.peek_unchecked() };
         match c {
             b'b' => {
                 unsafe { self.incr_unchecked() };
+                // we might be at source-end here, 3 more advances are valid
+                // ```_
+                // [a, b, c, \0, \0, \0]
+                //            ^ index
+                // ```
                 self.binary_lit();
                 return;
             }
             b'o' => {
                 unsafe { self.incr_unchecked() };
+                // we might be at source-end here, 3 more advances are valid
+                // ```_
+                // [a, b, c, \0, \0, \0]
+                //            ^ index
+                // ```
                 self.octal_lit();
                 return;
             }
             b'x' => {
                 unsafe { self.incr_unchecked() };
+                // we might be at source-end here, 3 more advances are valid
+                // ```_
+                // [a, b, c, \0, \0, \0]
+                //            ^ index
+                // ```
                 self.hexadecimal_lit();
                 return;
             }
             b'.' => {
                 unsafe { self.incr_unchecked() };
+                // we might be at source-end here, 3 more advances are valid
+                // ```_
+                // [a, b, c, \0, \0, \0]
+                //            ^ index
+                // ```
                 self.float_lit_remainder();
                 return;
             }
@@ -52,7 +72,6 @@ impl<'src> Lexer<'src> {
         };
 
         // just 0
-        self.tokens.push(TokenKind::LitInteger);
-        self.idents.push(self.make_identifier());
+        self.push_token_with_ident(TokenKind::LitInteger, self.make_identifier());
     }
 }

@@ -24,7 +24,11 @@ pub fn compile(in_files: Vec<PathBuf>, out_file: PathBuf) {
         if !errors.is_empty() {
             eprintln!("errors during lexing:");
             for error in errors {
-                eprintln!("in file {}\n\t{}", in_file.display(), error);
+                eprintln!(
+                    "in file {}\n\t{}",
+                    in_file.display(),
+                    error.display(source.clone())
+                );
             }
             continue;
         }

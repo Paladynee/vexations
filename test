@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 
-cargo test -p vexations
+cmd=(test)
+if [ "$1" == "miri" ]; then
+    shift
+    cmd=(miri test)
+fi
+
+cargo "${cmd[@]}" -p vexations "$@"

@@ -1,3 +1,5 @@
+use core::hint::cold_path;
+
 use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::error::LexerError;
 use crate::compiler::lexer::error::LexerErrorKind;
@@ -7,72 +9,131 @@ impl<'src> Lexer<'src> {
     /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline]
     pub fn string_lit(&mut self) {
-        // usually, the lexer state looks like:
+        // current lexer state looks like:
         // ```_
-        // ['0', 'o', '?'...
-        //   ^ start
-        //             ^ index
+        // [", ?, ...
+        //  ^ start
+        //     ^ index
         // ```
 
         // callsite PER_CHAR_DISPATCHER
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
 
-        if self.is_at_end() {
-            // eof while expecting octal digits
+        while !self.is_at_end() {
+            let c = unsafe { self.advance_unchecked() };
+
+            // we might be at source-end here, 3 more advances are valid
             // ```_
-            // ['0', 'o', 0, 0, 0]
-            //   ^ start
+            // [a, b, c, \0, \0, \0]
             //            ^ index
             // ```
-            self.error_here(LexerErrorKind::UnexpectedEndOfSource);
-            return;
-        }
 
-        let c = unsafe { self.peek_unchecked() };
-        match c {
-            b'0'..=b'7' => unsafe { self.incr_unchecked() },
-            _ => {
-                // no octal digits error
-                // ```_
-                // ['0', 'o', ';'...
-                //   ^ start
-                //             ^ index
-                // ```
-                self.error_here(LexerErrorKind::NoOctalDigits);
-                return;
-            }
-        };
-
-        // we might be at source-end here, 3 more advances are valid
-        // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
-        // ```
-        while !self.is_at_end() {
-            let c = unsafe { self.peek_unchecked() };
             match c {
-                b'0'..=b'7' => unsafe { self.incr_unchecked() },
-                _ => break,
+                // escape
+                b'\\' => {
+                    // help the optimizer skip through the rest of the
+                    // characters faster
+                    cold_path();
+
+                    // current lexer state looks like:
+                    // ```_
+                    // [", ..., \, ?, ...
+                    //   ^ start
+                    //             ^ index
+                    // ```
+
+                    if self.is_at_end() {
+                        // unexpected eof while expecting string escape
+                        // ```_
+                        // [", ..., \, \0, \0, \0]
+                        //   ^ start
+                        //              ^ index
+                        // ```
+                        self.error_here(LexerErrorKind::UnexpectedEndOfSource);
+                        return;
+                    }
+
+                    // todo: multi-char escapes
+
+                    let escaped = unsafe { self.advance_unchecked() };
+
+                    // we might be at source-end here, 3 more advances are valid
+                    // ```_
+                    // [a, b, c, \0, \0, \0]
+                    //            ^ index
+                    // ```
+
+                    if !matches!(
+                        escaped,
+                        b'\"' | b'\\' | b'0' | b'n' | b'r' | b't'
+                    ) {
+                        // current lexer state looks like
+                        // ```_
+                        // [", ..., \, x, ?, ...
+                        //   ^ start
+                        //                ^ index
+                        // ```
+
+                        // consume the closing quotes if it exists
+                        unsafe {
+                            if self.peek_unchecked() == b'"' {
+                                self.incr_unchecked();
+                            }
+                        }
+
+                        // current lexer state looks like either
+                        // ```_
+                        // [", ..., \, x, ", ?, ...
+                        //   ^ start
+                        //                   ^ index
+                        // ```
+                        // or
+                        // ```_
+                        // [", ..., \, x, ?, ...
+                        //   ^ start
+                        //                ^ index
+                        // ```
+
+                        self.error_here(LexerErrorKind::UnknownEscapeSequence(
+                            escaped,
+                        ));
+                        return;
+                    }
+                }
+                // close string
+                b'"' => {
+                    // help the optimizer skip through the rest of the
+                    // characters faster
+                    cold_path();
+
+                    // current lexer state looks like:
+                    // ```_
+                    // [", ..., ", ?, ...
+                    //   ^ start
+                    //             ^ index
+                    // ```
+                    self.push_token_with_ident(
+                        TokenKind::LitStr,
+                        self.make_identifier(),
+                    );
+                    return;
+                }
+                // any other ascii character
+                // VexationsSource guarantees we're working with ascii here
+                _ => continue,
             }
         }
 
+        // `string_lit` returns above when the closing quote is reached, so the
+        // current lexer state looks like:
         // ```_
-        // ['0', 'o', '7', ';'...
+        // [", ..., \0, \0, \0]
         //   ^ start
-        //                  ^ index
-        // ```
-
-        // we might be at source-end here, 3 more advances are valid
-        // ```_
-        // [a, b, c, 0, 0, 0]
         //           ^ index
         // ```
-        self.tokens.push(TokenKind::LitInteger);
-        let ident = self.make_identifier();
-        self.idents.push(ident);
     }
 }

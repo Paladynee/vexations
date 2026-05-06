@@ -1,4 +1,4 @@
-mod lexer_test_generator;
+pub mod lexer_test_generator;
 
 use std::fs::File;
 use std::path::PathBuf;

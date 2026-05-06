@@ -1,4 +1,4 @@
-use std::hint::assert_unchecked;
+use core::hint::assert_unchecked;
 
 use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::error::LexerErrorKind;
@@ -33,6 +33,18 @@ impl<'src> Lexer<'src> {
     /// ```
     #[inline(always)]
     pub const fn is_oob(&self, index: usize) -> bool {
+        // catches all of;
+        // - source-end,
+        // - 1 past source-end
+        // - 2 past source-end
+        // - 3 past source-end
+        // reaching any other `n` past source-end is already illegal, but it
+        // still checks for that
+        // ```_
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
+        //                ^ index
+        // ```
         index >= self.source_len()
     }
 

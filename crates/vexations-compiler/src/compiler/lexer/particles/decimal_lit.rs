@@ -7,18 +7,18 @@ impl<'src> Lexer<'src> {
     /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline]
     pub fn decimal_lit(&mut self) {
-        // usually, the lexer state looks like:
+        // current lexer state looks like:
         // ```_
-        // ['1', '?'...
-        //   ^ start
-        //        ^ index
+        // [1, ?...
+        //  ^ start
+        //     ^ index
         // ```
 
         // callsite PER_CHAR_DISPATCH
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
 
         while !self.is_at_end() {
@@ -35,18 +35,19 @@ impl<'src> Lexer<'src> {
         }
 
         // ```_
-        // ['1', '9', ';'...
-        //   ^ start
-        //             ^ index
+        // [1, 9, ;...
+        //  ^ start
+        //        ^ index
         // ```
 
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
-        self.tokens.push(TokenKind::LitInteger);
-        let ident = self.make_identifier();
-        self.idents.push(ident);
+        self.push_token_with_ident(
+            TokenKind::LitInteger,
+            self.make_identifier(),
+        );
     }
 }

@@ -259,6 +259,18 @@ impl TokenKind {
             // 3 character token combinations
             (TokenKind::PuncShl, TokenKind::PuncEq) => false, // <<=
             (TokenKind::PuncShr, TokenKind::PuncEq) => false, // >>=
+            (TokenKind::PuncLt, TokenKind::PuncLtEq) => false, // <, <= vs <<, =
+            (TokenKind::PuncGt, TokenKind::PuncGtEq) => false, // >, >= vs >>, =
+            (TokenKind::PuncEq, TokenKind::PuncEqEq) => false, // =, == vs ==, =
+            (TokenKind::PuncBang, TokenKind::PuncEqEq) => false, // !, == vs !=, =
+            (TokenKind::PuncSlash, TokenKind::PuncStarEq) => false, // /, *= vs /*, =
+            (TokenKind::PuncSlash, TokenKind::PuncSlashEq) => false, // /, /= vs //, =
+            (TokenKind::PuncMinus, TokenKind::PuncGtEq) => false, // -, >= vs ->, =
+            // 4 character token combinations
+            (TokenKind::PuncShr, TokenKind::PuncEqEq) => false, // >>, == vs >>=, = vs >>, =, = 
+            (TokenKind::PuncShl, TokenKind::PuncEqEq) => false, // <<, == vs <<=, = vs <<, =, = 
+            // multi character combinations
+            (TokenKind::LitInteger, TokenKind::PuncDot) => false, /* erroneous float */
             // hopefully all other pairs are safe
             _ => true,
         }

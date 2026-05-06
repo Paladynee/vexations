@@ -1,15 +1,15 @@
 use vexations_compiler::frontend::token::TokenKind as TK;
-
-static PREGEN_TEST: &str = include_str!("lexer_test.vxa");
+use vexations_generator::lexer_test_generator::LexerTestGenerator;
 
 mod math_expressions {
-    use std::panic::Location;
+    use core::panic::Location;
 
     use vexations_compiler::compiler::lexer::lex;
     use vexations_compiler::compiler::lexer::{
         self,
     };
     use vexations_compiler::frontend::source::VexationsSource;
+    use vexations_compiler::frontend::token::TokenKind;
 
     use super::*;
 
@@ -20,13 +20,16 @@ mod math_expressions {
         let mut bytes = src.as_bytes().to_vec();
         bytes.extend_from_slice(&[0; 3]);
         let source = VexationsSource::try_from_bytes(&bytes).unwrap();
-        let (tokens, _, errors) = lexer::lex(source);
+        let (tokens, _, errors) = lexer::lex(source.clone());
 
         if !errors.is_empty() {
-            panic!(
-                "unexpected lexing errors in test {}\nSource: {}\nErrors: {:#?}",
-                location, src, errors
+            eprintln!(
+                "unexpected lexing errors in test {}\nSource: {}\nErrors:",
+                location, src
             );
+            for error in errors {
+                eprintln!("{}", error.display(source.clone()));
+            }
         }
 
         assert_eq!(
@@ -45,13 +48,16 @@ mod math_expressions {
         let mut bytes = src.as_bytes().to_vec();
         bytes.extend_from_slice(&[0; 3]);
         let source = VexationsSource::try_from_bytes(&bytes).unwrap();
-        let (tokens, idents, errors) = lexer::lex(source);
+        let (tokens, idents, errors) = lexer::lex(source.clone());
 
         if !errors.is_empty() {
-            panic!(
-                "unexpected lexing errors in test {}\nSource: {}\nErrors: {:#?}",
-                location, src, errors
+            eprintln!(
+                "unexpected lexing errors in test {}\nSource: {}\nErrors:",
+                location, src
             );
+            for error in errors {
+                eprintln!("{}", error.display(source.clone()));
+            }
         }
 
         assert_eq!(
@@ -232,11 +238,58 @@ mod math_expressions {
 
     #[test]
     fn pregen_test() {
-        let mut bytes = PREGEN_TEST.as_bytes().to_vec();
+        const AMOUNT_TOKENS_TEST: usize = 100000;
+
+        let (mut bytes, expected_tokens) = {
+            let mut generator =
+                LexerTestGenerator::new(AMOUNT_TOKENS_TEST, Some(0));
+            let mut out_source = Vec::with_capacity(AMOUNT_TOKENS_TEST * 4);
+            let mut expected_tokens = Vec::with_capacity(AMOUNT_TOKENS_TEST);
+            while let Some((ws, kind, span)) = generator.next_span() {
+                if let Some(whitespace) = ws {
+                    out_source.extend_from_slice(whitespace.as_bytes());
+                }
+                out_source.extend_from_slice(span.as_bytes());
+                expected_tokens.push(kind);
+            }
+            (out_source, expected_tokens)
+        };
         bytes.extend_from_slice(&[0; 3]);
         let src = VexationsSource::try_from_bytes(&bytes).unwrap();
-        let (toks, _, errs) = lex(src);
-        assert_eq!(toks.len(), 10000);
-        assert!(errs.is_empty(), "unexpected lexing errors: {:#?}", errs);
+        let (toks, idents, errs) = lex(src.clone());
+        if !errs.is_empty() {
+            eprintln!("TEST ERROR: lexing errors encountered:");
+            for err in errs {
+                eprintln!("{}", err.display(src.clone()));
+            }
+            panic!("TEST ERROR: lexing errors encountered")
+        }
+        let mut ident_i = 0;
+        for i in 0..toks.len() {
+            let tok = &toks[i];
+            let ident: Option<&str> = if tok.is_identifier_extractable() {
+                let ret = idents[ident_i];
+                ident_i += 1;
+                Some(ret)
+            } else {
+                None
+            };
+            let expected = expected_tokens[i];
+
+            if *tok != expected {
+                let mut out_file_path = std::env::temp_dir();
+                out_file_path.push("test_fail.vxa");
+                std::fs::write(&out_file_path, src.source()).unwrap();
+                eprintln!(
+                    "test fail source written to {}",
+                    out_file_path.display()
+                );
+
+                panic!(
+                    "TEST ERROR: token mismatch at token index {}\nExpected: {:?}\nActual: {:?}\nIdentifier: {:?}",
+                    i, expected, tok, ident
+                );
+            }
+        }
     }
 }

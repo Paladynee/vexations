@@ -7,26 +7,26 @@ impl<'src> Lexer<'src> {
     /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline]
     pub fn octal_lit(&mut self) {
-        // usually, the lexer state looks like:
+        // current lexer state looks like:
         // ```_
-        // ['0', 'o', '?'...
-        //   ^ start
-        //             ^ index
+        // [0, o, ?...
+        //  ^ start
+        //        ^ index
         // ```
 
         // callsite zero_lit
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
 
         if self.is_at_end() {
             // eof while expecting octal digits
             // ```_
-            // ['0', 'o', 0, 0, 0]
-            //   ^ start
-            //            ^ index
+            // [0, o, \0, \0, \0]
+            //  ^ start
+            //         ^ index
             // ```
             self.error_here(LexerErrorKind::UnexpectedEndOfSource);
             return;
@@ -38,9 +38,9 @@ impl<'src> Lexer<'src> {
             _ => {
                 // no octal digits error
                 // ```_
-                // ['0', 'o', ';'...
-                //   ^ start
-                //             ^ index
+                // [0, o, ;...
+                //  ^ start
+                //        ^ index
                 // ```
                 self.error_here(LexerErrorKind::NoOctalDigits);
                 return;
@@ -49,8 +49,8 @@ impl<'src> Lexer<'src> {
 
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
         while !self.is_at_end() {
             let c = unsafe { self.peek_unchecked() };
@@ -61,18 +61,19 @@ impl<'src> Lexer<'src> {
         }
 
         // ```_
-        // ['0', 'o', '7', ';'...
-        //   ^ start
-        //                  ^ index
+        // [0, o, 7, ;...
+        //  ^ start
+        //           ^ index
         // ```
 
         // we might be at source-end here, 3 more advances are valid
         // ```_
-        // [a, b, c, 0, 0, 0]
-        //           ^ index
+        // [a, b, c, \0, \0, \0]
+        //            ^ index
         // ```
-        self.tokens.push(TokenKind::LitInteger);
-        let ident = self.make_identifier();
-        self.idents.push(ident);
+        self.push_token_with_ident(
+            TokenKind::LitInteger,
+            self.make_identifier(),
+        );
     }
 }

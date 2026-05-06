@@ -1,9 +1,9 @@
 use core::fmt;
+use core::hint::assert_unchecked;
+use core::marker::PhantomData;
 use core::num::NonZeroUsize;
+use core::ptr::NonNull;
 use core::str;
-use std::hint::assert_unchecked;
-use std::marker::PhantomData;
-use std::ptr::NonNull;
 
 #[derive(Debug, Clone)]
 pub struct VexationsSource<'src> {
@@ -15,14 +15,21 @@ pub struct VexationsSource<'src> {
     /// ^------- src[..src_len]
     /// ```
     src_ptr: NonNull<u8>,
+    // todo: investigate data oriented design:
+    // is it faster to access different len fields (more memory + cache
+    // pressure), or calculating `src_len = buffer_len - 3` on the fly (1
+    // subtraction with impossible underflow) on each access
     buffer_len: usize,
     src_len: usize,
+    // todo @module_system: add source file path here
+    // possibly OsString or PathBuf. then change LexerErrorDisplay to support
+    // printing the source file name in the diagnostic formatter
     _marker: PhantomData<&'src str>,
 }
 
 impl<'src> VexationsSource<'src> {
-    /// The last 3 bytes inside the source must be all zeros. If it's not, push
-    /// them prior to calling.
+    /// The last 3 bytes inside the source must be all zeros.
+    /// If it's not, push them prior to calling.
     #[inline]
     pub const fn try_from_bytes(bytes: &'src [u8]) -> Option<Self> {
         let &[.., a, b, c] = bytes else {
@@ -30,7 +37,10 @@ impl<'src> VexationsSource<'src> {
         };
 
         if (a | b | c) != 0 {
-            return None;
+            panic!(
+                "implementation error: push 3 nul bytes \
+                to the source buffer before calling"
+            );
         }
 
         if !bytes.is_ascii() {
@@ -91,12 +101,15 @@ impl<'src> VexationsSource<'src> {
 }
 
 #[derive(Debug, Clone)]
-pub struct LineCol {
+pub struct Span {
+    // todo: inspo rustc to optimize the size of this thing possibly?
     pub line: NonZeroUsize,
     pub col: usize,
+    pub source_offset: usize,
+    pub span_length: usize,
 }
 
-impl fmt::Display for LineCol {
+impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.line.get(), self.col)
     }

@@ -3,11 +3,11 @@ mod particles;
 mod per_char_dispatch;
 mod plumbing;
 
+use core::num::NonZeroUsize;
 use core::str;
-use std::num::NonZeroUsize;
 
 use crate::compiler::lexer::error::LexerError;
-use crate::frontend::source::LineCol;
+use crate::frontend::source::Span;
 use crate::frontend::source::VexationsSource;
 use crate::frontend::token::TokenKind;
 
@@ -26,39 +26,69 @@ pub struct Lexer<'src> {
     index: usize,
 
     tokens: Vec<TokenKind>,
+    spans: Vec<usize>,
     idents: Vec<&'src str>,
     errors: Vec<LexerError>,
 }
 
 impl<'src> Lexer<'src> {
     #[inline]
-    pub const fn new(src: VexationsSource<'src>) -> Self {
+    pub fn new(src: VexationsSource<'src>) -> Self {
+        let guess = src.source().len() / 4;
+        let ident_guess = src.source().len() / 8;
         Lexer {
             src,
             start: 0,
             index: 0,
-            tokens: vec![],
-            idents: vec![],
+            tokens: Vec::with_capacity(guess),
+            spans: Vec::with_capacity(guess),
+            idents: Vec::with_capacity(ident_guess),
             errors: vec![],
         }
     }
 
+    #[inline(always)]
+    pub fn push_token(&mut self, token_kind: TokenKind) {
+        self.tokens.push(token_kind);
+        self.spans.push(self.start);
+    }
+
+    #[inline(always)]
+    pub fn push_token_with_ident(
+        &mut self, token_kind: TokenKind, ident: &'src str,
+    ) {
+        self.push_token(token_kind);
+        self.idents.push(ident);
+    }
+
     #[inline(never)]
     #[cold]
-    pub fn location(&self) -> LineCol {
+    pub fn location(&self) -> Span {
         let src = self.source();
         let Some(prefix) = src.get(..self.start) else {
-            return LineCol {
+            // shouldn't happen, self.start never hits the padding bytes at the
+            // end of the source.
+            // ```_
+            // [a, b, c, \0, \0, \0]
+            //        ^ start never goes past this character
+            // ```
+            return Span {
                 line: unsafe { NonZeroUsize::new_unchecked(1) },
                 col: 0,
+                source_offset: self.start,
+                span_length: 0,
             };
         };
+
+        let prefix = prefix.as_bytes();
 
         let mut lc: usize = 1;
         let mut last_nl_offset: Option<usize> = None;
 
-        for (i, b) in prefix.bytes().enumerate() {
-            if b == b'\n' {
+        for i in 0..prefix.len() {
+            // rustc gets rid of this indexing panic for us thanks to loop
+            // invariant being simple asf
+            if prefix[i] == b'\n' {
                 lc += 1;
                 last_nl_offset = Some(i);
             }
@@ -69,9 +99,11 @@ impl<'src> Lexer<'src> {
             None => self.start,
         };
 
-        LineCol {
-            line: unsafe { core::num::NonZeroUsize::new_unchecked(lc) },
+        Span {
+            line: unsafe { NonZeroUsize::new_unchecked(lc) },
             col,
+            source_offset: self.start,
+            span_length: unsafe { self.index.unchecked_sub(self.start) },
         }
     }
 

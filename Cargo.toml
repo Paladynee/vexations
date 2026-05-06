@@ -22,6 +22,7 @@ edition = "2024"
 
 [dependencies]
 vexations-compiler = { path = "crates/vexations-compiler" }
+vexations-generator = { path = "crates/vexations-generator" }
 
 [workspace.dependencies]
 
