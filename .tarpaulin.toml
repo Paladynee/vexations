@@ -1,0 +1,14 @@
+[coverage]
+timeout = "300s"
+minimum = 50
+output-format = "Xml"
+exclude-files = [
+    "**/tests/**",
+    "**/examples/**",
+]
+workspace = true
+all-features = true
+parallel = true
+
+[coverage.output]
+lcov = true

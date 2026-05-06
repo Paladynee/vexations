@@ -1,4 +1,6 @@
 mod error;
+mod particles;
+mod per_char_dispatch;
 mod plumbing;
 
 use core::str;
@@ -74,6 +76,15 @@ impl<'src> Lexer<'src> {
 
     #[inline]
     pub fn lex_all(&mut self) {
-        //
+        while !self.is_at_end() {
+            self.skip_whitespace();
+            if self.is_at_end() {
+                return;
+            }
+
+            self.start = self.index;
+            let c = unsafe { self.advance_unchecked() };
+            per_char_dispatch::PER_CHAR_DISPATCHER[c as usize](self);
+        }
     }
 }

@@ -1,3 +1,9 @@
+[package]
+name = "vexations"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
 [workspace]
 members = [
     "crates/vexations-generator",
@@ -13,6 +19,9 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+
+[dependencies]
+vexations-compiler = { path = "crates/vexations-compiler" }
 
 [workspace.dependencies]
 

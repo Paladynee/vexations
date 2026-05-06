@@ -8,6 +8,13 @@ impl<'src> Lexer<'src> {
         self.src.buffer()
     }
 
+    /// Should only be accessed for providing diagnostic, lexing goes through
+    /// [`Lexer::buffer`].
+    #[inline(always)]
+    pub const fn source(&self) -> &'src str {
+        self.src.source()
+    }
+
     #[inline(always)]
     pub const fn source_len(&self) -> usize {
         self.src.source_len()
@@ -39,18 +46,36 @@ impl<'src> Lexer<'src> {
     }
 
     #[inline(always)]
-    pub unsafe fn peek_unchecked(&self) -> u8 {
+    pub unsafe fn incr_unchecked(&mut self) {
         unsafe {
-            assert_unchecked(self.index < self.buffer_len());
-            *self.buffer().get_unchecked(self.index)
+            assert_unchecked(!self.is_oob(self.index));
+            self.index = self.index.unchecked_add(1);
         }
+    }
+
+    #[inline(always)]
+    pub unsafe fn index_unchecked(&self, index: usize) -> u8 {
+        unsafe {
+            assert_unchecked(index < self.buffer_len());
+            *self.buffer().get_unchecked(index)
+        }
+    }
+
+    #[inline(always)]
+    pub unsafe fn peek_unchecked(&self) -> u8 {
+        unsafe { self.index_unchecked(self.index) }
+    }
+
+    #[inline(always)]
+    pub unsafe fn peek_next_unchecked(&self) -> u8 {
+        unsafe { self.index_unchecked(self.index.unchecked_add(1)) }
     }
 
     #[inline(always)]
     pub unsafe fn advance_unchecked(&mut self) -> u8 {
         unsafe {
             let c = self.peek_unchecked();
-            self.index = self.index.unchecked_add(1);
+            self.incr_unchecked();
             c
         }
     }
@@ -59,7 +84,7 @@ impl<'src> Lexer<'src> {
     pub unsafe fn matches_unchecked(&mut self, expected: u8) -> bool {
         unsafe {
             if self.peek_unchecked() == expected {
-                self.index = self.index.unchecked_add(1);
+                self.incr_unchecked();
                 true
             } else {
                 false
@@ -68,7 +93,7 @@ impl<'src> Lexer<'src> {
     }
 
     #[inline(always)]
-    pub unsafe fn make_literal(&self) -> &'src [u8] {
+    pub fn make_literal(&self) -> &'src [u8] {
         unsafe {
             assert_unchecked(self.start <= self.index);
             self.buffer().get_unchecked(self.start..self.index)

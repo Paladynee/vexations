@@ -4,3 +4,9 @@ flamegraph.svg
 *.vxa
 perf.data
 perf.data.old
+
+# coverage reports
+/coverage/
+cobertura.xml
+lcov.info
+tarpaulin-report.html

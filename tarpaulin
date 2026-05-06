@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+cargo tarpaulin \
+    --workspace \
+    --out Html \
+    --output-dir coverage \
+    --timeout 300 \
+    --exclude-files tests examples \
+    --all-features

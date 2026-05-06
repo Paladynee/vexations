@@ -1,10 +1,10 @@
-use vexations_compiler::middle::token::TokenKind as TK;
+use vexations_compiler::frontend::token::TokenKind as TK;
 
 mod math_expressions {
     use std::panic::Location;
 
     use vexations_compiler::compiler::lexer;
-    use vexations_compiler::middle::source::VexationsSource;
+    use vexations_compiler::frontend::source::VexationsSource;
 
     use super::*;
 
@@ -32,107 +32,100 @@ mod math_expressions {
     }
 
     #[test]
-    fn simple_addition() {
-        assert_lex_tokens("1 + 3", &[
-            TK::LitInteger,
+    fn empty() {
+        assert_lex_tokens("", &[]);
+    }
+
+    #[test]
+    fn whitespace() {
+        assert_lex_tokens(" \t\r\n", &[]);
+    }
+
+    #[test]
+    fn delims() {
+        assert_lex_tokens("()[]{}", &[
+            TK::IndentLParen,
+            TK::IndentRParen,
+            TK::IndentLBracket,
+            TK::IndentRBracket,
+            TK::IndentLBrace,
+            TK::IndentRBrace,
+        ]);
+    }
+
+    #[test]
+    fn operators() {
+        assert_lex_tokens("+ - * / % = ^ & |", &[
             TK::PuncPlus,
-            TK::LitInteger,
-        ]);
-    }
-
-    #[test]
-    fn simple_multiplication() {
-        assert_lex_tokens("3 * 9", &[
-            TK::LitInteger,
-            TK::PuncStar,
-            TK::LitInteger,
-        ]);
-    }
-
-    #[test]
-    fn addition_and_multiplication() {
-        assert_lex_tokens("1 + 3 * 9", &[
-            TK::LitInteger,
-            TK::PuncPlus,
-            TK::LitInteger,
-            TK::PuncStar,
-            TK::LitInteger,
-        ]);
-    }
-
-    #[test]
-    fn subtraction() {
-        assert_lex_tokens("10 - 5", &[
-            TK::LitInteger,
             TK::PuncMinus,
-            TK::LitInteger,
-        ]);
-    }
-
-    #[test]
-    fn division() {
-        assert_lex_tokens("20 / 4", &[
-            TK::LitInteger,
+            TK::PuncStar,
             TK::PuncSlash,
-            TK::LitInteger,
-        ]);
-    }
-
-    #[test]
-    fn modulo() {
-        assert_lex_tokens("10 % 3", &[
-            TK::LitInteger,
             TK::PuncModulo,
-            TK::LitInteger,
+            TK::PuncEq,
+            TK::PuncXor,
+            TK::PuncAnd,
+            TK::PuncOr,
         ]);
     }
 
     #[test]
-    fn parenthesized_expression() {
-        assert_lex_tokens("(1 + 3) * 9", &[
-            TK::IndentLParen,
-            TK::LitInteger,
-            TK::PuncPlus,
-            TK::LitInteger,
-            TK::IndentRParen,
-            TK::PuncStar,
-            TK::LitInteger,
+    fn compound_operators() {
+        assert_lex_tokens("+= -= *= /= %= ^= &= |=", &[
+            TK::PuncPlusEq,
+            TK::PuncMinusEq,
+            TK::PuncStarEq,
+            TK::PuncSlashEq,
+            TK::PuncModuloEq,
+            TK::PuncXorEq,
+            TK::PuncAndEq,
+            TK::PuncOrEq,
         ]);
     }
 
     #[test]
-    fn float_arithmetic() {
-        assert_lex_tokens("3.14 + 2.86", &[
-            TK::LitFloat,
-            TK::PuncPlus,
-            TK::LitFloat,
+    fn comparison_operators() {
+        assert_lex_tokens("== != < > <= >=", &[
+            TK::PuncEqEq,
+            TK::PuncBangEq,
+            TK::PuncLt,
+            TK::PuncGt,
+            TK::PuncLtEq,
+            TK::PuncGtEq,
         ]);
     }
 
     #[test]
-    fn negative_number() {
-        assert_lex_tokens("-5 + 3", &[
-            TK::PuncMinus,
-            TK::LitInteger,
-            TK::PuncPlus,
-            TK::LitInteger,
+    fn logical_operators() {
+        assert_lex_tokens("&& || !", &[
+            TK::PuncAndAnd,
+            TK::PuncOrOr,
+            TK::PuncBang,
         ]);
     }
 
     #[test]
-    fn complex_expression() {
-        assert_lex_tokens("2 * (3 + 4) - 5 / 2", &[
-            TK::LitInteger,
-            TK::PuncStar,
-            TK::IndentLParen,
-            TK::LitInteger,
-            TK::PuncPlus,
-            TK::LitInteger,
-            TK::IndentRParen,
-            TK::PuncMinus,
-            TK::LitInteger,
-            TK::PuncSlash,
-            TK::LitInteger,
+    fn misc_punctuation() {
+        assert_lex_tokens(", ; : :: .", &[
+            TK::PuncComma,
+            TK::PuncSemi,
+            TK::PuncColon,
+            TK::PuncColonColon,
+            TK::PuncDot,
         ]);
+    }
+
+    #[test]
+    fn shiftlike() {
+        assert_lex_tokens("<< >> <<= >>=", &[
+            TK::PuncShl,
+            TK::PuncShr,
+            TK::PuncShlEq,
+            TK::PuncShrEq,
+        ]);
+    }
+
+    #[test]
+    fn arrow_right() {
+        assert_lex_tokens("->", &[TK::PuncArrowRight]);
     }
 }
