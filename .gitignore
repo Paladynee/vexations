@@ -1,7 +1,6 @@
 /target
 Cargo.lock
 flamegraph.svg
-*.vxa
 perf.data
 perf.data.old
 

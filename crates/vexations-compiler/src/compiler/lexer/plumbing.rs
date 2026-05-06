@@ -8,7 +8,7 @@ impl<'src> Lexer<'src> {
         self.src.buffer()
     }
 
-    /// Should only be accessed for providing diagnostic, lexing goes through
+    /// Should only be accessed for providing diagnostics, lexing goes through
     /// [`Lexer::buffer`].
     #[inline(always)]
     pub const fn source(&self) -> &'src str {
@@ -45,11 +45,14 @@ impl<'src> Lexer<'src> {
         self.is_oob(self.index)
     }
 
+    /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline(always)]
     pub unsafe fn incr_unchecked(&mut self) {
         unsafe {
-            assert_unchecked(!self.is_oob(self.index));
+            // before: assume within bounds
+            assert_unchecked(self.index < self.buffer_len());
             self.index = self.index.unchecked_add(1);
+            // after: might be self.index == self.buffer_len()
         }
     }
 
@@ -71,6 +74,7 @@ impl<'src> Lexer<'src> {
         unsafe { self.index_unchecked(self.index.unchecked_add(1)) }
     }
 
+    /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline(always)]
     pub unsafe fn advance_unchecked(&mut self) -> u8 {
         unsafe {
@@ -80,6 +84,7 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline(always)]
     pub unsafe fn matches_unchecked(&mut self, expected: u8) -> bool {
         unsafe {
@@ -93,10 +98,11 @@ impl<'src> Lexer<'src> {
     }
 
     #[inline(always)]
-    pub fn make_literal(&self) -> &'src [u8] {
+    pub fn make_literal(&self) -> &'src str {
         unsafe {
             assert_unchecked(self.start <= self.index);
-            self.buffer().get_unchecked(self.start..self.index)
+            let s = self.buffer().get_unchecked(self.start..self.index);
+            str::from_utf8_unchecked(s)
         }
     }
 }

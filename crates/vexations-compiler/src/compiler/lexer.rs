@@ -45,8 +45,9 @@ impl<'src> Lexer<'src> {
 
     #[inline(never)]
     #[cold]
-    pub fn location(src: &'src str, offset: usize) -> LineCol {
-        let Some(prefix) = src.get(..offset) else {
+    pub fn location(&self) -> LineCol {
+        let src = self.source();
+        let Some(prefix) = src.get(..self.start) else {
             return LineCol {
                 line: unsafe { NonZeroUsize::new_unchecked(1) },
                 col: 0,
@@ -64,8 +65,8 @@ impl<'src> Lexer<'src> {
         }
 
         let col = match last_nl_offset {
-            Some(nl_pos) => offset - (nl_pos + 1),
-            None => offset,
+            Some(nl_pos) => self.start - (nl_pos + 1),
+            None => self.start,
         };
 
         LineCol {

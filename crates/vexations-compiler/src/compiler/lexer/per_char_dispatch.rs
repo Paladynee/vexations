@@ -5,13 +5,18 @@ use crate::frontend::token::TokenKind as TK;
 
 pub type PerCharHandler = for<'lx> fn(&mut Lexer<'lx>);
 
+#[allow(unused_unsafe)]
 pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
     let mut handlers = [unknown_character as PerCharHandler; 256];
+
+    // empty handler for nul byte
+    handlers[0] = |_| {};
+
     macro_rules! h {
-        (raw $char:literal, $kind:ident) => {
+        ( raw $char:literal, $kind:ident ) => {
             handlers[$char as usize] = |l| l.tokens.push(TK::$kind);
         };
-        ( $char:literal, $lexer:ident, $($body:tt)* ) => {
+        ( $char:expr, $lexer:pat, $($body:tt)* ) => {
             handlers[$char as usize] = |$lexer| unsafe { $($body)* };
         };
     }
@@ -139,14 +144,27 @@ pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
             l.tokens.push(TK::PuncXor);
         }
     });
+    h!(b'0', l, l.zero_lit());
+
+    macro_rules! to {
+        ($start:literal..=$end:literal, $lexer:ident, $($body:tt)*) => {{
+            let mut c = $start;
+            while c <= $end {
+                h!(c, $lexer, $($body)*);
+                c += 1;
+            }
+        }};
+    }
+    to!(b'1'..=b'9', l, l.decimal_lit());
+
+    to!(b'a'..=b'z', l, l.wordlike());
+    to!(b'A'..=b'Z', l, l.wordlike());
+    h!(b'_', l, l.wordlike());
+
     handlers
 };
 
 fn unknown_character(lexer: &mut Lexer) {
     let c = unsafe { lexer.index_unchecked(lexer.start) };
-    let err = LexerError {
-        location: Lexer::location(lexer.source(), lexer.start),
-        kind: LexerErrorKind::UnknownCharacter(c),
-    };
-    lexer.errors.push(err);
+    lexer.error_here(LexerErrorKind::UnknownCharacter(c));
 }
