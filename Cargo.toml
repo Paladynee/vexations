@@ -11,3 +11,15 @@ save_memory = []
 [dependencies]
 printerator = "1.0.1"
 voxell_rng = "0.6.0"
+
+[dev-dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[profile.fuzzing]
+inherits = "release"
+debug = true

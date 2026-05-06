@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
+set -x
+
 rm -i vexations-*.ll
 
 RUSTFLAGS='-Awarnings' cargo \
     clean -q
 RUSTFLAGS='-Awarnings' cargo \
-    rustc -q --release -- \
+    rustc -q --release --bin vexations -- \
     --emit=llvm-ir -C link-dead-code "$@"
 
-for thing in $(find target/*/deps -type f -name '*.ll'); do;
+for thing in $(find target/*/deps -type f -name '*.ll'); do
     echo "$thing"
     cp --update=none-fail "$thing" . 
-    if (($?)); then
+    if [[ $? ]]; then
         echo "error $?: cp \"$thing\" ." >&2
     fi
 done

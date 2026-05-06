@@ -25,7 +25,8 @@ pub fn generate(
         GeneratorMode::GenLexerTest(n_tok) => {
             let file = File::create(out_file).unwrap();
             let mut writer = std::io::BufWriter::new(file);
-            lexer_test_generator::generate_lexer_test(&mut writer, n_tok).unwrap();
+            lexer_test_generator::generate_lexer_test(&mut writer, n_tok)
+                .unwrap();
         }
     };
 }
