@@ -246,8 +246,11 @@ impl TokenKind {
             (TokenKind::PuncOr, TokenKind::PuncOr) => false, // ||
             (TokenKind::PuncPlus, TokenKind::PuncEq) => false, // +=
             (TokenKind::PuncMinus, TokenKind::PuncEq) => false, // -=
+            (TokenKind::PuncMinus, TokenKind::PuncGt) => false, // ->
             (TokenKind::PuncStar, TokenKind::PuncEq) => false, // *=
             (TokenKind::PuncSlash, TokenKind::PuncEq) => false, // /=
+            (TokenKind::PuncSlash, TokenKind::PuncSlash) => false, // //
+            (TokenKind::PuncSlash, TokenKind::PuncStar) => false, // /*
             (TokenKind::PuncModulo, TokenKind::PuncEq) => false, // %=
             (TokenKind::PuncAnd, TokenKind::PuncEq) => false, // &=
             (TokenKind::PuncOr, TokenKind::PuncEq) => false, // |=

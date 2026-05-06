@@ -46,7 +46,7 @@ impl<'src> Lexer<'src> {
         //           ^ index
         // ```
         self.tokens.push(TokenKind::LitInteger);
-        let ident = self.make_literal();
+        let ident = self.make_identifier();
         self.idents.push(ident);
     }
 }

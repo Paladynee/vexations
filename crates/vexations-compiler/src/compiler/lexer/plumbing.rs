@@ -1,6 +1,7 @@
 use std::hint::assert_unchecked;
 
 use crate::compiler::lexer::Lexer;
+use crate::compiler::lexer::error::LexerErrorKind;
 
 impl<'src> Lexer<'src> {
     #[inline(always)]
@@ -97,12 +98,35 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    /// Check for [`Lexer::is_at_end`] after this function returns.
     #[inline(always)]
-    pub fn make_literal(&self) -> &'src str {
+    pub unsafe fn expect_consume_unchecked(&mut self, expected: u8) -> bool {
         unsafe {
-            assert_unchecked(self.start <= self.index);
-            let s = self.buffer().get_unchecked(self.start..self.index);
+            if self.peek_unchecked() == expected {
+                self.incr_unchecked();
+                true
+            } else {
+                self.error_here(LexerErrorKind::UnexpectedWhileExpecting(
+                    expected,
+                ));
+                false
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub unsafe fn make_identifier_from_raw_parts(
+        &self, start: usize, index: usize,
+    ) -> &'src str {
+        unsafe {
+            assert_unchecked(start <= index);
+            let s = self.buffer().get_unchecked(start..index);
             str::from_utf8_unchecked(s)
         }
+    }
+
+    #[inline(always)]
+    pub fn make_identifier(&self) -> &'src str {
+        unsafe { self.make_identifier_from_raw_parts(self.start, self.index) }
     }
 }

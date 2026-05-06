@@ -33,7 +33,7 @@ impl<'src> Lexer<'src> {
             }
         }
 
-        let identifier = self.make_literal();
+        let identifier = self.make_identifier();
         unsafe { assert_unchecked(!identifier.is_empty()) };
         unsafe { self.trie_traverse(identifier) };
     }

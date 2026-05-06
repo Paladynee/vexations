@@ -13,7 +13,10 @@ pub enum LexerErrorKind {
     NoBinaryDigits,
     NoOctalDigits,
     NoHexadecimalDigits,
+    EmptyCharLiteral,
     UnknownCharacter(u8),
+    UnknownEscapeSequence(u8),
+    UnexpectedWhileExpecting(u8),
 }
 
 #[derive(Debug, Clone)]
@@ -44,10 +47,16 @@ impl Display for LexerError {
                 "at {}, float literal has no fractional part",
                 self.location
             ),
-            LexerErrorKind::NoBinaryDigits =>
-                write!(f, "at {}, binary literal has no binary part", self.location),
-            LexerErrorKind::NoOctalDigits =>
-                write!(f, "at {}, octal literal has no octal part", self.location),
+            LexerErrorKind::NoBinaryDigits => write!(
+                f,
+                "at {}, binary literal has no binary part",
+                self.location
+            ),
+            LexerErrorKind::NoOctalDigits => write!(
+                f,
+                "at {}, octal literal has no octal part",
+                self.location
+            ),
             LexerErrorKind::NoHexadecimalDigits => write!(
                 f,
                 "at {}, hexadecimal literal has no hexadecimal part",

@@ -161,6 +161,9 @@ pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
     to!(b'A'..=b'Z', l, l.wordlike());
     h!(b'_', l, l.wordlike());
 
+    h!(b'\'', l, l.char_lit());
+    h!(b'"', l, l.string_lit());
+
     handlers
 };
 

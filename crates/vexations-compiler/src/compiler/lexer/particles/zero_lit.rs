@@ -53,6 +53,6 @@ impl<'src> Lexer<'src> {
 
         // just 0
         self.tokens.push(TokenKind::LitInteger);
-        self.idents.push(self.make_literal());
+        self.idents.push(self.make_identifier());
     }
 }
