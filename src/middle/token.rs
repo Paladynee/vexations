@@ -191,6 +191,76 @@ impl TokenKind {
         )
     }
 
+    #[rustfmt::skip]
+    #[inline]
+    pub const fn is_keyword(self) -> bool {
+        matches!(
+            self,
+            TokenKind::KwLet |
+            TokenKind::KwFn |
+            TokenKind::KwReturn |
+            TokenKind::KwExtern |
+            TokenKind::KwConst |
+            TokenKind::KwMut |
+            TokenKind::KwAnymut |
+            TokenKind::KwCompiletime |
+            TokenKind::KwRuntime |
+            TokenKind::KwStatic |
+            TokenKind::KwType |
+            TokenKind::KwCast |
+            TokenKind::KwIf |
+            TokenKind::KwElse |
+            TokenKind::KwFor |
+            TokenKind::KwWhile |
+            TokenKind::KwLoop |
+            TokenKind::KwContinue |
+            TokenKind::KwBreak |
+            TokenKind::KwAdtStruct |
+            TokenKind::KwAdtEnum |
+            TokenKind::KwAdtUnion
+        )
+    }
+
+    #[inline]
+    pub const fn can_safely_follow(prev: TokenKind, next: TokenKind) -> bool {
+        let prev_is_wordlike =
+            prev.is_keyword() || prev.is_identifier_extractable();
+        let next_is_wordlike =
+            next.is_keyword() || next.is_identifier_extractable();
+
+        if prev_is_wordlike && next_is_wordlike {
+            // wordlike tokens cannot be adjacent without whitespace because
+            // they would merge into a single identifier during lexing
+            return false;
+        }
+
+        match (prev, next) {
+            // 2 character token combinations
+            (TokenKind::PuncEq, TokenKind::PuncEq) => false, // ==
+            (TokenKind::PuncBang, TokenKind::PuncEq) => false, // !=
+            (TokenKind::PuncLt, TokenKind::PuncEq) => false, // <=
+            (TokenKind::PuncGt, TokenKind::PuncEq) => false, // >=
+            (TokenKind::PuncLt, TokenKind::PuncLt) => false, // <<
+            (TokenKind::PuncGt, TokenKind::PuncGt) => false, // >>
+            (TokenKind::PuncAnd, TokenKind::PuncAnd) => false, // &&
+            (TokenKind::PuncOr, TokenKind::PuncOr) => false, // ||
+            (TokenKind::PuncPlus, TokenKind::PuncEq) => false, // +=
+            (TokenKind::PuncMinus, TokenKind::PuncEq) => false, // -=
+            (TokenKind::PuncStar, TokenKind::PuncEq) => false, // *=
+            (TokenKind::PuncSlash, TokenKind::PuncEq) => false, // /=
+            (TokenKind::PuncModulo, TokenKind::PuncEq) => false, // %=
+            (TokenKind::PuncAnd, TokenKind::PuncEq) => false, // &=
+            (TokenKind::PuncOr, TokenKind::PuncEq) => false, // |=
+            (TokenKind::PuncXor, TokenKind::PuncEq) => false, // ^=
+            (TokenKind::PuncColon, TokenKind::PuncColon) => false, // ::
+            // 3 character token combinations
+            (TokenKind::PuncShl, TokenKind::PuncEq) => false, // <<=
+            (TokenKind::PuncShr, TokenKind::PuncEq) => false, // >>=
+            // hopefully all other pairs are safe
+            _ => true,
+        }
+    }
+
     #[inline]
     pub const fn source_repr(self) -> &'static str {
         match self {
