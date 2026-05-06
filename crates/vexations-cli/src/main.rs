@@ -1,5 +1,3 @@
-#![feature(likely_unlikely)]
-
 use std::path::PathBuf;
 
 use vexations_compiler::compiler;

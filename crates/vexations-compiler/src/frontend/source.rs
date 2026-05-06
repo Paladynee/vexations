@@ -1,8 +1,9 @@
 use core::fmt;
 use core::num::NonZeroUsize;
-use core::slice;
 use core::str;
-use std::hint::unreachable_unchecked;
+use std::hint::assert_unchecked;
+use std::marker::PhantomData;
+use std::ptr::NonNull;
 
 #[derive(Debug, Clone)]
 pub struct VexationsSource<'src> {
@@ -10,9 +11,13 @@ pub struct VexationsSource<'src> {
     /// ```
     ///           v------ padding
     /// [a, b, c, 0, 0, 0]
-    /// ^---------------- &str
+    /// ^---------------- src[..buffer_len]
+    /// ^------- src[..src_len]
     /// ```
-    pub(crate) src: &'src str,
+    src_ptr: NonNull<u8>,
+    buffer_len: usize,
+    src_len: usize,
+    _marker: PhantomData<&'src str>,
 }
 
 impl<'src> VexationsSource<'src> {
@@ -32,24 +37,56 @@ impl<'src> VexationsSource<'src> {
             return None;
         }
 
-        Some(VexationsSource {
-            src: unsafe { str::from_utf8_unchecked(bytes) },
-        })
+        let res = VexationsSource {
+            src_ptr: NonNull::from_ref(bytes).cast::<u8>(),
+            buffer_len: bytes.len(),
+            src_len: bytes.len() - 3,
+            _marker: PhantomData,
+        };
+        unsafe { res.assert_invariants_for_opt() };
+        Some(res)
+    }
+
+    /// this does not generate any code. all of these invariants are true for a
+    /// [`VexationsSource`] that has been constructed legally.
+    #[inline(always)]
+    pub const unsafe fn assert_invariants_for_opt(&self) {
+        unsafe {
+            assert_unchecked(self.buffer_len >= 3);
+            assert_unchecked(self.src_len < self.buffer_len);
+            let _ = self.src_ptr.cast_slice(self.buffer_len).as_ref();
+            let _ = self.src_ptr.cast_slice(self.src_len).as_ref();
+        }
     }
 
     #[inline(always)]
     pub const fn buffer(&self) -> &'src [u8] {
-        self.src.as_bytes()
+        unsafe {
+            self.assert_invariants_for_opt();
+            self.src_ptr.cast_slice(self.buffer_len()).as_ref()
+        }
+    }
+
+    #[inline(always)]
+    pub const fn source(&self) -> &'src str {
+        unsafe {
+            self.assert_invariants_for_opt();
+            str::from_utf8_unchecked(
+                self.src_ptr.cast_slice(self.source_len()).as_ref(),
+            )
+        }
     }
 
     #[inline(always)]
     pub const fn buffer_len(&self) -> usize {
-        self.src.len()
+        unsafe { self.assert_invariants_for_opt() };
+        self.buffer_len
     }
 
-    #[inline]
+    #[inline(always)]
     pub const fn source_len(&self) -> usize {
-        unsafe { self.src.len().unchecked_sub(3) }
+        unsafe { self.assert_invariants_for_opt() };
+        self.src_len
     }
 }
 

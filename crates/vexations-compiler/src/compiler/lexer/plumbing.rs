@@ -56,6 +56,18 @@ impl<'src> Lexer<'src> {
     }
 
     #[inline(always)]
+    pub unsafe fn matches_unchecked(&mut self, expected: u8) -> bool {
+        unsafe {
+            if self.peek_unchecked() == expected {
+                self.index = self.index.unchecked_add(1);
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    #[inline(always)]
     pub unsafe fn make_literal(&self) -> &'src [u8] {
         unsafe {
             assert_unchecked(self.start <= self.index);
