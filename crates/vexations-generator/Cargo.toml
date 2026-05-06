@@ -1,0 +1,11 @@
+[package]
+name = "vexations-generator"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = []
+
+[dependencies]
+vexations-compiler = { path = "../vexations-compiler" }
+voxell_rng = "0.6.0"

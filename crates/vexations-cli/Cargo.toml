@@ -1,0 +1,12 @@
+[package]
+name = "vexations-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "vexations"
+path = "src/main.rs"
+
+[dependencies]
+vexations-compiler = { path = "../vexations-compiler" }
+vexations-generator = { path = "../vexations-generator" }

@@ -2,4 +2,4 @@
 
 set -xe
 
-rm -r fuzz/corpus fuzz/artifacts fuzz/target
+rm -r crates/fuzz/corpus crates/fuzz/artifacts crates/fuzz/target

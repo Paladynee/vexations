@@ -5,9 +5,9 @@ use core::str;
 use std::num::NonZeroUsize;
 
 use crate::compiler::lexer::error::LexerError;
-use crate::middle::source::LineCol;
-use crate::middle::source::VexationsSource;
-use crate::middle::token::TokenKind;
+use crate::frontend::source::LineCol;
+use crate::frontend::source::VexationsSource;
+use crate::frontend::token::TokenKind;
 
 #[allow(unused)]
 pub fn lex<'src>(

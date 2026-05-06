@@ -2,11 +2,21 @@
 
 use std::path::PathBuf;
 
-use vexations::GeneratorMode;
-use vexations::Options;
-use vexations::RunningMode;
-use vexations::compiler;
-use vexations::generator;
+use vexations_compiler::compiler;
+use vexations_generator::GeneratorMode;
+
+#[derive(Debug, Clone, Copy)]
+enum RunningMode {
+    Compile,
+    Generate,
+}
+
+#[derive(Debug, Clone, Default)]
+struct Options {
+    in_files: Vec<PathBuf>,
+    out_file: Option<PathBuf>,
+    generator_mode: Option<GeneratorMode>,
+}
 
 fn main() {
     let mut args = std::env::args_os().skip(1);
@@ -72,7 +82,35 @@ fn main() {
     }
 
     match mode {
-        RunningMode::Compile => compiler::compile(options),
-        RunningMode::Generate => generator::generate(options),
+        RunningMode::Compile => {
+            if options.in_files.is_empty() {
+                eprintln!(
+                    "No input files provided for compilation. Use -i <file> to specify input files."
+                );
+                return;
+            };
+            let Some(out_file) = options.out_file else {
+                eprintln!(
+                    "Output file not specified for compilation. Use -o <file> to specify the output file for compiled code."
+                );
+                return;
+            };
+            compiler::compile(options.in_files, out_file);
+        }
+        RunningMode::Generate => {
+            let Some(generator_mode) = options.generator_mode else {
+                eprintln!(
+                    "Generator mode not specified. Use -l <number> to specify the number of tokens to generate for lexer tests."
+                );
+                return;
+            };
+            let Some(out_file) = options.out_file else {
+                eprintln!(
+                    "Output file not specified. Use -o <file> to specify the output file for generated code."
+                );
+                return;
+            };
+            vexations_generator::generate(out_file, generator_mode);
+        }
     }
 }

@@ -1,7 +1,7 @@
 use core::fmt;
 use std::fmt::Display;
 
-use crate::middle::source::LineCol;
+use crate::frontend::source::LineCol;
 
 #[derive(Debug, Clone)]
 pub enum LexerErrorKind {

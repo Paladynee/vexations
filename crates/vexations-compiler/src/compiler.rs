@@ -1,22 +1,14 @@
 use std::fs;
+use std::path::PathBuf;
 
-use printerator::PrinterateDebug;
 use printerator::PrinterateDisplay;
 
-use crate::Options;
-use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::lex;
-use crate::middle::source::VexationsSource;
+use crate::frontend::source::VexationsSource;
 
 pub mod lexer;
 
-pub fn compile(
-    Options {
-        in_files,
-        out_file,
-        ..
-    }: Options,
-) {
+pub fn compile(in_files: Vec<PathBuf>, out_file: PathBuf) {
     if in_files.is_empty() {
         eprintln!("No input files provided");
         return;

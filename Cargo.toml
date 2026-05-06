@@ -1,20 +1,20 @@
-[package]
-name = "vexations"
+[workspace]
+members = [
+    "crates/vexations-generator",
+    "crates/vexations-compiler",
+    "crates/vexations-cli",
+    "crates/fuzz",
+]
+default-members = [
+    "crates/vexations-cli",
+]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 
-[features]
-default = []
-# enable shrink_to_fit after lexing
-save_memory = []
-
-[dependencies]
-printerator = "1.0.1"
-voxell_rng = "0.6.0"
-
-[dev-dependencies]
-libfuzzer-sys = "0.4"
-arbitrary = { version = "1", features = ["derive"] }
+[workspace.dependencies]
 
 [profile.release]
 opt-level = 3

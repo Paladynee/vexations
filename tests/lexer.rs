@@ -1,10 +1,10 @@
-use vexations::middle::token::TokenKind as TK;
+use vexations_compiler::middle::token::TokenKind as TK;
 
 mod math_expressions {
     use std::panic::Location;
 
-    use vexations::compiler::lexer;
-    use vexations::middle::source::VexationsSource;
+    use vexations_compiler::compiler::lexer;
+    use vexations_compiler::middle::source::VexationsSource;
 
     use super::*;
 

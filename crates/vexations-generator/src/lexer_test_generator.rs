@@ -9,7 +9,7 @@ use voxell_rng::slice_methods::SelectorOneImmut;
 use voxell_rng::slice_methods::SliceSelectRandomExt;
 use voxell_rng::time_seeded::TimeSeededXoRoShiRo128Plus;
 
-use crate::middle::token::TokenKind;
+use vexations_compiler::frontend::token::TokenKind;
 
 pub fn generate_lexer_test(
     out_w: &mut impl Write, n_tok: usize,
