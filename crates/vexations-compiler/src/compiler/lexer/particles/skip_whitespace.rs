@@ -1,5 +1,3 @@
-use core::hint::unlikely;
-
 use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::error::LexerErrorKind;
 

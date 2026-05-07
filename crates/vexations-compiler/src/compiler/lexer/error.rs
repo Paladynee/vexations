@@ -171,11 +171,6 @@ impl<'src> Display for LexerErrorDisplay<'src> {
         static ANSI_RESET: &str = "\x1b[0m";
         writeln!(
             f,
-            "goddamn location number: {}",
-            self.err.location.line.get()
-        );
-        writeln!(
-            f,
             "{ANSI_BOLD_RED}error{ANSI_RESET}: \
             {ANSI_BOLD_WHITE}{error_msg}{ANSI_RESET}\
             \n    at {ANSI_GRAY}{loc}{ANSI_RESET}:\n\
@@ -184,7 +179,7 @@ impl<'src> Display for LexerErrorDisplay<'src> {
             {spaces} ^ here",
             error_msg = self.err.error_message_formatter(),
             loc = self.err.location,
-            line_num = self.err.location.line.get() as usize,
+            line_num = self.err.location.line.get(),
             src = src_line,
             spaces = " ".repeat(
                 decimal_length(self.err.location.line.get()) // {line num} 

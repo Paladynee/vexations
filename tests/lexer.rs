@@ -1,4 +1,5 @@
 #![feature(ptr_cast_slice)]
+#![allow(unused)]
 extern crate libc;
 
 use vexations_compiler::frontend::token::TokenKind as TK;

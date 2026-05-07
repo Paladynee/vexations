@@ -1,10 +1,10 @@
 use crate::compiler::lexer::Lexer;
-use crate::compiler::lexer::error::LexerError;
 use crate::compiler::lexer::error::LexerErrorKind;
 use crate::frontend::token::TokenKind;
 
 impl<'src> Lexer<'src> {
     /// Check for [`Lexer::is_at_end`] after this function returns.
+    #[allow(clippy::manual_is_ascii_check)]
     #[inline]
     pub fn hexadecimal_lit(&mut self) {
         // current lexer state looks like:

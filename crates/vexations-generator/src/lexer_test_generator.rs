@@ -48,6 +48,7 @@ impl LexerTestGenerator {
 
     /// Returns optional whitespace, generated token kind, then the source
     /// representation of the token
+    #[allow(clippy::collapsible_if)]
     pub fn next_span(
         &mut self,
     ) -> Option<(Option<&'static str>, TokenKind, &str)> {

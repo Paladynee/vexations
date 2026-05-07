@@ -2,8 +2,6 @@ use core::hint::assert_unchecked;
 use core::hint::unreachable_unchecked;
 
 use crate::compiler::lexer::Lexer;
-use crate::compiler::lexer::error::LexerError;
-use crate::compiler::lexer::error::LexerErrorKind;
 use crate::frontend::token::TokenKind;
 
 impl<'src> Lexer<'src> {
@@ -39,11 +37,12 @@ impl<'src> Lexer<'src> {
     }
 
     #[cold]
+    #[inline(never)]
     pub fn trie_check_rest(
         &mut self, rest: &[u8], expected: &[u8], token: TokenKind,
         identifier: &'src str,
     ) {
-        if rest == expected {
+        if *rest == *expected {
             self.push_token(token);
         } else {
             self.push_token_with_ident(TokenKind::LitIdentifier, identifier);
@@ -51,12 +50,13 @@ impl<'src> Lexer<'src> {
     }
 
     #[cold]
+    #[inline(never)]
     pub fn trie_check_rest_ident(
         &mut self, rest: &[u8], expected: &[u8], token: TokenKind,
         identifier: &'src str,
     ) {
         self.push_token_with_ident(
-            if rest == expected {
+            if *rest == *expected {
                 token
             } else {
                 TokenKind::LitIdentifier
@@ -105,9 +105,6 @@ impl<'src> Lexer<'src> {
                             ),
                         // compiletime, const, continue,
                         b'o' => {
-                            // if !(5..=11).contains(&identifier.len()) {
-                            //     break 'trie;
-                            // }
                             let &[c, ref rest @ ..] = rest else {
                                 break 'trie;
                             };
@@ -122,9 +119,6 @@ impl<'src> Lexer<'src> {
                                     ),
                                 // const, continue
                                 b'n' => {
-                                    // if !(5..=8).contains(&identifier.len()) {
-                                    //     break 'trie;
-                                    // }
                                     let &[d, ref rest @ ..] = rest else {
                                         break 'trie;
                                     };

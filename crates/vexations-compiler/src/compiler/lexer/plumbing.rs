@@ -159,6 +159,7 @@ impl<'src> Lexer<'src> {
         self.idents.push(ident);
     }
 
+    #[allow(clippy::needless_range_loop)]
     #[inline(never)]
     #[cold]
     pub fn location(&self) -> Span {

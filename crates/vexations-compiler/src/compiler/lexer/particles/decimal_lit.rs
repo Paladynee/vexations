@@ -1,6 +1,4 @@
 use crate::compiler::lexer::Lexer;
-use crate::compiler::lexer::error::LexerError;
-use crate::compiler::lexer::error::LexerErrorKind;
 use crate::frontend::token::TokenKind;
 
 impl<'src> Lexer<'src> {
