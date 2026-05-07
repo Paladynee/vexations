@@ -1,3 +1,5 @@
+use core::hint::unlikely;
+
 use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::error::LexerErrorKind;
 use crate::frontend::token::TokenKind as TK;
@@ -118,14 +120,12 @@ pub static PER_CHAR_DISPATCHER: [PerCharHandler; 256] = {
     h!(b'/', l, {
         let token = if l.matches_unchecked(b'=') {
             TK::PuncSlashEq
-        } else if l.peek_unchecked() == b'/' {
-            // todo: comments (line comment)
-            // don't forget to change above call to matches_unchecked
-            TK::PuncSlash
-        } else if l.peek_unchecked() == b'*' {
-            // todo: comments (block comment)
-            // don't forget to change above call to matches_unchecked
-            TK::PuncSlash
+        } else if unlikely(l.matches_unchecked(b'/')) {
+            l.single_line_comment::<true>();
+            return;
+        } else if unlikely(l.matches_unchecked(b'*')) {
+            l.multi_line_comment::<true>();
+            return;
         } else {
             TK::PuncSlash
         };

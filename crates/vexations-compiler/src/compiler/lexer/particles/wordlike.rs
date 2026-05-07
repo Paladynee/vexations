@@ -67,9 +67,6 @@ impl<'src> Lexer<'src> {
 
     #[inline(never)]
     pub unsafe fn trie_traverse(&mut self, identifier: &'src str) {
-        if identifier == "88.6" {
-            eprintln!("traverse");
-        }
         let &[a, ref rest @ ..] = identifier.as_bytes() else {
             unsafe { unreachable_unchecked() };
         };

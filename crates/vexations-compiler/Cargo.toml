@@ -10,3 +10,4 @@ save_memory = []
 
 [dependencies]
 printerator = "1.0.1"
+phf = { version = "0.13.1", features = ["macros"] }
