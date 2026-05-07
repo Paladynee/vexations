@@ -19,7 +19,7 @@ pub fn compile(in_files: Vec<PathBuf>, out_file: PathBuf) {
         bytes.extend_from_slice(&[0; 3]);
         let source = VexationsSource::try_from_bytes(&bytes).unwrap();
 
-        let (tokens, idents, errors) = lex(source.clone());
+        let (tokens, spans, idents, errors) = lex(source.clone()).finalize();
 
         if !errors.is_empty() {
             eprintln!("errors during lexing:");

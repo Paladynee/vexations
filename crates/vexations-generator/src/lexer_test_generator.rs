@@ -2,6 +2,8 @@ use std::io;
 use std::io::Write;
 use std::str;
 
+use vexations_compiler::compiler::lexer::Lexer;
+use vexations_compiler::frontend::source::VexationsSource;
 use vexations_compiler::frontend::token::TokenKind;
 use voxell_rng::prelude::RngCoreExtension;
 use voxell_rng::rng::XoRoShiRo128;
@@ -24,9 +26,7 @@ impl LexerTestGenerator {
         let all_toks = TokenKind::ALL
             .iter()
             .filter(|&t| {
-                *t == TokenKind::LitUninit
-                    || !t.is_identifier_extractable()
-                        && *t != TokenKind::MetaDummy
+                !t.is_identifier_extractable() && *t != TokenKind::MetaDummy
             })
             .copied()
             .collect::<Vec<_>>();
@@ -86,10 +86,10 @@ impl LexerTestGenerator {
         let current_token: TokenKind;
 
         if is_literal {
-            match self.rng.next_usize() % 9 {
+            match self.rng.next_usize() % 10 {
                 0 => {
                     // valid identifier of random length
-                    current_token = TokenKind::LitIdentifier;
+                    // current_token = TokenKind::LitIdentifier;
                     let continue_len = self.rng.next_usize() % MAX_LIT_LEN;
                     let start = IDENT_START_ALPHABET
                         .select_random(SelectorOneImmut, &mut self.rng)
@@ -101,6 +101,15 @@ impl LexerTestGenerator {
                             .unwrap();
                         self.scratch.push(*next);
                     }
+                    let dummy_src =
+                        VexationsSource::try_from_bytes(&[0, 0, 0]).unwrap();
+                    let mut dummy_lexer = Lexer::new(dummy_src);
+                    unsafe {
+                        dummy_lexer.trie_traverse(str::from_utf8_unchecked(
+                            &self.scratch,
+                        ))
+                    };
+                    current_token = dummy_lexer.tokens_view()[0];
                 }
                 1 => {
                     // valid integer number literal
@@ -230,6 +239,11 @@ impl LexerTestGenerator {
                     } else {
                         self.scratch.extend_from_slice(b"false");
                     }
+                }
+                9 => {
+                    // valid uninit literal
+                    current_token = TokenKind::LitUninit;
+                    self.scratch.extend_from_slice(b"uninit");
                 }
                 _ => unreachable!(),
             };

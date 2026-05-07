@@ -41,9 +41,12 @@ impl<'src> Lexer<'src> {
     #[cold]
     pub fn trie_check_rest(
         &mut self, rest: &[u8], expected: &[u8], token: TokenKind,
+        identifier: &'src str,
     ) {
         if rest == expected {
             self.push_token(token);
+        } else {
+            self.push_token_with_ident(TokenKind::LitIdentifier, identifier);
         }
     }
 
@@ -52,13 +55,21 @@ impl<'src> Lexer<'src> {
         &mut self, rest: &[u8], expected: &[u8], token: TokenKind,
         identifier: &'src str,
     ) {
-        if rest == expected {
-            self.push_token_with_ident(token, identifier);
-        }
+        self.push_token_with_ident(
+            if rest == expected {
+                token
+            } else {
+                TokenKind::LitIdentifier
+            },
+            identifier,
+        );
     }
 
     #[inline(never)]
     pub unsafe fn trie_traverse(&mut self, identifier: &'src str) {
+        if identifier == "88.6" {
+            eprintln!("traverse");
+        }
         let &[a, ref rest @ ..] = identifier.as_bytes() else {
             unsafe { unreachable_unchecked() };
         };
@@ -71,6 +82,7 @@ impl<'src> Lexer<'src> {
                         rest,
                         b"nymut",
                         TokenKind::KwAnymut,
+                        identifier,
                     ),
                 // break
                 b'b' =>
@@ -78,6 +90,7 @@ impl<'src> Lexer<'src> {
                         rest,
                         b"reak",
                         TokenKind::KwBreak,
+                        identifier,
                     ),
                 // cast, compiletime, const, continue
                 b'c' => {
@@ -91,12 +104,13 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"st",
                                 TokenKind::KwCast,
+                                identifier,
                             ),
                         // compiletime, const, continue,
                         b'o' => {
-                            if !(5..=11).contains(&identifier.len()) {
-                                break 'trie;
-                            }
+                            // if !(5..=11).contains(&identifier.len()) {
+                            //     break 'trie;
+                            // }
                             let &[c, ref rest @ ..] = rest else {
                                 break 'trie;
                             };
@@ -107,12 +121,13 @@ impl<'src> Lexer<'src> {
                                         rest,
                                         b"piletime",
                                         TokenKind::KwCompiletime,
+                                        identifier,
                                     ),
                                 // const, continue
                                 b'n' => {
-                                    if !(5..=8).contains(&identifier.len()) {
-                                        break 'trie;
-                                    }
+                                    // if !(5..=8).contains(&identifier.len()) {
+                                    //     break 'trie;
+                                    // }
                                     let &[d, ref rest @ ..] = rest else {
                                         break 'trie;
                                     };
@@ -123,6 +138,7 @@ impl<'src> Lexer<'src> {
                                                 rest,
                                                 b"t",
                                                 TokenKind::KwConst,
+                                                identifier,
                                             ),
                                         // continue
                                         b't' =>
@@ -130,6 +146,7 @@ impl<'src> Lexer<'src> {
                                                 rest,
                                                 b"inue",
                                                 TokenKind::KwContinue,
+                                                identifier,
                                             ),
                                         _ => {}
                                     }
@@ -152,6 +169,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"se",
                                 TokenKind::KwElse,
+                                identifier,
                             ),
                         // enum
                         b'n' =>
@@ -159,6 +177,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"um",
                                 TokenKind::KwAdtEnum,
+                                identifier,
                             ),
                         // extern
                         b'x' =>
@@ -166,6 +185,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"tern",
                                 TokenKind::KwExtern,
+                                identifier,
                             ),
                         _ => {}
                     }
@@ -183,6 +203,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"",
                                 TokenKind::KwFn,
+                                identifier,
                             ),
                         // for
                         b'o' =>
@@ -190,6 +211,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"r",
                                 TokenKind::KwFor,
+                                identifier,
                             ),
                         // false
                         b'a' =>
@@ -205,7 +227,12 @@ impl<'src> Lexer<'src> {
 
                 // if
                 b'i' =>
-                    return self.trie_check_rest(rest, b"f", TokenKind::KwIf),
+                    return self.trie_check_rest(
+                        rest,
+                        b"f",
+                        TokenKind::KwIf,
+                        identifier,
+                    ),
 
                 // let, loop
                 b'l' => {
@@ -219,6 +246,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"t",
                                 TokenKind::KwLet,
+                                identifier,
                             ),
                         // loop
                         b'o' =>
@@ -226,6 +254,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"op",
                                 TokenKind::KwLoop,
+                                identifier,
                             ),
                         _ => {}
                     }
@@ -233,7 +262,12 @@ impl<'src> Lexer<'src> {
 
                 // mut
                 b'm' =>
-                    return self.trie_check_rest(rest, b"ut", TokenKind::KwMut),
+                    return self.trie_check_rest(
+                        rest,
+                        b"ut",
+                        TokenKind::KwMut,
+                        identifier,
+                    ),
 
                 // return, runtime
                 b'r' => {
@@ -247,6 +281,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"turn",
                                 TokenKind::KwReturn,
+                                identifier,
                             ),
                         // runtime
                         b'u' =>
@@ -254,6 +289,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"ntime",
                                 TokenKind::KwRuntime,
+                                identifier,
                             ),
                         _ => {}
                     }
@@ -261,13 +297,9 @@ impl<'src> Lexer<'src> {
 
                 // static, struct
                 b's' => {
-                    let &[b, c, ref rest @ ..] = rest else {
+                    let &[b't', c, ref rest @ ..] = rest else {
                         break 'trie;
                     };
-
-                    if b != b't' {
-                        break 'trie;
-                    }
 
                     match c {
                         // static
@@ -276,6 +308,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"tic",
                                 TokenKind::KwStatic,
+                                identifier,
                             ),
                         // struct
                         b'r' =>
@@ -283,6 +316,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"uct",
                                 TokenKind::KwAdtStruct,
+                                identifier,
                             ),
                         _ => {}
                     }
@@ -300,6 +334,7 @@ impl<'src> Lexer<'src> {
                                 rest,
                                 b"pe",
                                 TokenKind::KwType,
+                                identifier,
                             ),
                         // true
                         b'r' =>
@@ -313,13 +348,37 @@ impl<'src> Lexer<'src> {
                     }
                 }
 
-                // union
-                b'u' =>
-                    return self.trie_check_rest(
-                        rest,
-                        b"nion",
-                        TokenKind::KwAdtUnion,
-                    ),
+                // union, uninit
+                b'u' => {
+                    let &[b'n', ref rest @ ..] = rest else {
+                        break 'trie;
+                    };
+                    let &[b'i', ref rest @ ..] = rest else {
+                        break 'trie;
+                    };
+                    let &[b, ref rest @ ..] = rest else {
+                        break 'trie;
+                    };
+                    match b {
+                        // union
+                        b'o' =>
+                            return self.trie_check_rest(
+                                rest,
+                                b"n",
+                                TokenKind::KwAdtUnion,
+                                identifier,
+                            ),
+                        // uninit
+                        b'n' =>
+                            return self.trie_check_rest_ident(
+                                rest,
+                                b"it",
+                                TokenKind::LitUninit,
+                                identifier,
+                            ),
+                        _ => {}
+                    }
+                }
 
                 // while
                 b'w' =>
@@ -327,6 +386,7 @@ impl<'src> Lexer<'src> {
                         rest,
                         b"hile",
                         TokenKind::KwWhile,
+                        identifier,
                     ),
                 // endof keywords
                 _ => {}

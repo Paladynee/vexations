@@ -1,23 +1,20 @@
-mod error;
+pub mod error;
 mod particles;
 mod per_char_dispatch;
 mod plumbing;
 
-use core::num::NonZeroUsize;
 use core::str;
+use core::mem;
 
 use crate::compiler::lexer::error::LexerError;
-use crate::frontend::source::Span;
 use crate::frontend::source::VexationsSource;
 use crate::frontend::token::TokenKind;
 
 #[allow(unused)]
-pub fn lex<'src>(
-    src: VexationsSource<'src>,
-) -> (Vec<TokenKind>, Vec<&'src str>, Vec<LexerError>) {
+pub fn lex<'src>(src: VexationsSource<'src>) -> Lexer<'src> {
     let mut lexer = Lexer::new(src);
     lexer.lex_all();
-    (lexer.tokens, lexer.idents, lexer.errors)
+    lexer
 }
 
 pub struct Lexer<'src> {
@@ -47,63 +44,47 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    #[inline(always)]
-    pub fn push_token(&mut self, token_kind: TokenKind) {
-        self.tokens.push(token_kind);
-        self.spans.push(self.start);
-    }
-
-    #[inline(always)]
-    pub fn push_token_with_ident(
-        &mut self, token_kind: TokenKind, ident: &'src str,
-    ) {
-        self.push_token(token_kind);
-        self.idents.push(ident);
-    }
-
-    #[inline(never)]
-    #[cold]
-    pub fn location(&self) -> Span {
-        let src = self.source();
-        let Some(prefix) = src.get(..self.start) else {
-            // shouldn't happen, self.start never hits the padding bytes at the
-            // end of the source.
-            // ```_
-            // [a, b, c, \0, \0, \0]
-            //        ^ start never goes past this character
-            // ```
-            return Span {
-                line: unsafe { NonZeroUsize::new_unchecked(1) },
-                col: 0,
-                source_offset: self.start,
-                span_length: 0,
-            };
-        };
-
-        let prefix = prefix.as_bytes();
-
-        let mut lc: usize = 1;
-        let mut last_nl_offset: Option<usize> = None;
-
-        for i in 0..prefix.len() {
-            // rustc gets rid of this indexing panic for us thanks to loop
-            // invariant being simple asf
-            if prefix[i] == b'\n' {
-                lc += 1;
-                last_nl_offset = Some(i);
-            }
+    #[inline]
+    pub fn new_reuse_allocations(
+        src: VexationsSource<'src>, mut v1: Vec<TokenKind>, mut v2: Vec<usize>,
+        mut v3: Vec<&'src str>, mut v4: Vec<LexerError>,
+    ) -> Lexer<'src> {
+        v1.clear();
+        v2.clear();
+        v3.clear();
+        v4.clear();
+        Lexer {
+            src,
+            start: 0,
+            index: 0,
+            tokens: v1,
+            spans: v2,
+            idents: v3,
+            errors: v4,
         }
-
-        let col = match last_nl_offset {
-            Some(nl_pos) => self.start - (nl_pos + 1),
-            None => self.start,
-        };
-
-        Span {
-            line: unsafe { NonZeroUsize::new_unchecked(lc) },
-            col,
-            source_offset: self.start,
-            span_length: unsafe { self.index.unchecked_sub(self.start) },
+    }
+    /// # Safety
+    ///
+    /// Only sound if you don't read from v3 afterwards.
+    #[inline]
+    pub unsafe fn new_reuse_static_allocations(
+        src: VexationsSource<'src>, mut v1: Vec<TokenKind>, mut v2: Vec<usize>,
+        mut v3: Vec<&'static str>, mut v4: Vec<LexerError>,
+    ) -> Lexer<'src> {
+        v1.clear();
+        v2.clear();
+        v3.clear();
+        v4.clear();
+        Lexer {
+            src,
+            start: 0,
+            index: 0,
+            tokens: v1,
+            spans: v2,
+            idents: unsafe {
+                mem::transmute::<Vec<&'static str>, Vec<&'_ str>>(v3)
+            },
+            errors: v4,
         }
     }
 
@@ -119,5 +100,52 @@ impl<'src> Lexer<'src> {
             let c = unsafe { self.advance_unchecked() };
             per_char_dispatch::PER_CHAR_DISPATCHER[c as usize](self);
         }
+    }
+
+    #[inline]
+    pub fn tokens_view(&self) -> &[TokenKind] {
+        self.tokens.as_slice()
+    }
+
+    #[inline]
+    pub fn spans_view(&self) -> &[usize] {
+        self.spans.as_slice()
+    }
+
+    #[inline]
+    pub fn idents_view(&self) -> &[&'src str] {
+        self.idents.as_slice()
+    }
+
+    #[inline]
+    pub fn errors_view(&self) -> &[LexerError] {
+        self.errors.as_slice()
+    }
+
+    #[inline]
+    pub fn take_tokens(&mut self) -> Vec<TokenKind> {
+        mem::take(&mut self.tokens)
+    }
+
+    #[inline]
+    pub fn take_spans(&mut self) -> Vec<usize> {
+        mem::take(&mut self.spans)
+    }
+
+    #[inline]
+    pub fn take_idents(&mut self) -> Vec<&'src str> {
+        mem::take(&mut self.idents)
+    }
+
+    #[inline]
+    pub fn take_errors(&mut self) -> Vec<LexerError> {
+        mem::take(&mut self.errors)
+    }
+
+    #[inline]
+    pub fn finalize(
+        self,
+    ) -> (Vec<TokenKind>, Vec<usize>, Vec<&'src str>, Vec<LexerError>) {
+        (self.tokens, self.spans, self.idents, self.errors)
     }
 }

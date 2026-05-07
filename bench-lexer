@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+RUSTFLAGS='-Ctarget-cpu=native -Awarnings' cargo bench -p lexer-bench --bench lexer "$@"

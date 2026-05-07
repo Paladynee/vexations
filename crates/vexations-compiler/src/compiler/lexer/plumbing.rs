@@ -1,7 +1,10 @@
 use core::hint::assert_unchecked;
+use std::num::NonZeroUsize;
 
 use crate::compiler::lexer::Lexer;
 use crate::compiler::lexer::error::LexerErrorKind;
+use crate::frontend::source::Span;
+use crate::frontend::token::TokenKind;
 
 impl<'src> Lexer<'src> {
     #[inline(always)]
@@ -140,5 +143,65 @@ impl<'src> Lexer<'src> {
     #[inline(always)]
     pub fn make_identifier(&self) -> &'src str {
         unsafe { self.make_identifier_from_raw_parts(self.start, self.index) }
+    }
+
+    #[inline(always)]
+    pub fn push_token(&mut self, token_kind: TokenKind) {
+        self.tokens.push(token_kind);
+        self.spans.push(self.start);
+    }
+
+    #[inline(always)]
+    pub fn push_token_with_ident(
+        &mut self, token_kind: TokenKind, ident: &'src str,
+    ) {
+        self.push_token(token_kind);
+        self.idents.push(ident);
+    }
+
+    #[inline(never)]
+    #[cold]
+    pub fn location(&self) -> Span {
+        let src = self.source();
+        let Some(prefix) = src.get(..self.start) else {
+            // shouldn't happen, self.start never hits the padding bytes at the
+            // end of the source.
+            // ```_
+            // [a, b, c, \0, \0, \0]
+            //        ^ start never goes past this character
+            // ```
+            return Span {
+                line: unsafe { NonZeroUsize::new_unchecked(1) },
+                col: 0,
+                source_offset: self.start,
+                span_length: 0,
+            };
+        };
+
+        let prefix = prefix.as_bytes();
+
+        let mut lc: usize = 1;
+        let mut last_nl_offset: Option<usize> = None;
+
+        for i in 0..prefix.len() {
+            // rustc gets rid of this indexing panic for us thanks to loop
+            // invariant being simple asf
+            if prefix[i] == b'\n' {
+                lc += 1;
+                last_nl_offset = Some(i);
+            }
+        }
+
+        let col = match last_nl_offset {
+            Some(nl_pos) => self.start - (nl_pos + 1),
+            None => self.start,
+        };
+
+        Span {
+            line: unsafe { NonZeroUsize::new_unchecked(lc) },
+            col,
+            source_offset: self.start,
+            span_length: unsafe { self.index.unchecked_sub(self.start) },
+        }
     }
 }

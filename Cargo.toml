@@ -9,7 +9,8 @@ members = [
     "crates/vexations-generator",
     "crates/vexations-compiler",
     "crates/vexations-cli",
-    "crates/fuzz",
+    "crates/fuzz-targets/lexer",
+    "crates/bench-targets/lexer",
 ]
 default-members = [
     "crates/vexations-cli",
@@ -21,10 +22,15 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+
+[dev-dependencies]
+libc = "0.2"
 vexations-compiler = { path = "crates/vexations-compiler" }
 vexations-generator = { path = "crates/vexations-generator" }
 
 [workspace.dependencies]
+vexations-compiler = { path = "crates/vexations-compiler" }
+vexations-generator = { path = "crates/vexations-generator" }
 
 [profile.release]
 opt-level = 3

@@ -235,42 +235,63 @@ impl TokenKind {
         }
 
         match (prev, next) {
-            // 2 character token combinations
-            (TokenKind::PuncEq, TokenKind::PuncEq) => false, // ==
-            (TokenKind::PuncBang, TokenKind::PuncEq) => false, // !=
-            (TokenKind::PuncLt, TokenKind::PuncEq) => false, // <=
-            (TokenKind::PuncGt, TokenKind::PuncEq) => false, // >=
-            (TokenKind::PuncLt, TokenKind::PuncLt) => false, // <<
-            (TokenKind::PuncGt, TokenKind::PuncGt) => false, // >>
-            (TokenKind::PuncAnd, TokenKind::PuncAnd) => false, // &&
-            (TokenKind::PuncOr, TokenKind::PuncOr) => false, // ||
-            (TokenKind::PuncPlus, TokenKind::PuncEq) => false, // +=
-            (TokenKind::PuncMinus, TokenKind::PuncEq) => false, // -=
-            (TokenKind::PuncMinus, TokenKind::PuncGt) => false, // ->
-            (TokenKind::PuncStar, TokenKind::PuncEq) => false, // *=
-            (TokenKind::PuncSlash, TokenKind::PuncEq) => false, // /=
-            (TokenKind::PuncSlash, TokenKind::PuncSlash) => false, // //
-            (TokenKind::PuncSlash, TokenKind::PuncStar) => false, // /*
-            (TokenKind::PuncModulo, TokenKind::PuncEq) => false, // %=
-            (TokenKind::PuncAnd, TokenKind::PuncEq) => false, // &=
-            (TokenKind::PuncOr, TokenKind::PuncEq) => false, // |=
-            (TokenKind::PuncXor, TokenKind::PuncEq) => false, // ^=
-            (TokenKind::PuncColon, TokenKind::PuncColon) => false, // ::
-            // 3 character token combinations
-            (TokenKind::PuncShl, TokenKind::PuncEq) => false, // <<=
-            (TokenKind::PuncShr, TokenKind::PuncEq) => false, // >>=
-            (TokenKind::PuncLt, TokenKind::PuncLtEq) => false, // <, <= vs <<, =
-            (TokenKind::PuncGt, TokenKind::PuncGtEq) => false, // >, >= vs >>, =
-            (TokenKind::PuncEq, TokenKind::PuncEqEq) => false, // =, == vs ==, =
-            (TokenKind::PuncBang, TokenKind::PuncEqEq) => false, // !, == vs !=, =
-            (TokenKind::PuncSlash, TokenKind::PuncStarEq) => false, // /, *= vs /*, =
-            (TokenKind::PuncSlash, TokenKind::PuncSlashEq) => false, // /, /= vs //, =
-            (TokenKind::PuncMinus, TokenKind::PuncGtEq) => false, // -, >= vs ->, =
-            // 4 character token combinations
-            (TokenKind::PuncShr, TokenKind::PuncEqEq) => false, // >>, == vs >>=, = vs >>, =, = 
-            (TokenKind::PuncShl, TokenKind::PuncEqEq) => false, // <<, == vs <<=, = vs <<, =, = 
-            // multi character combinations
-            (TokenKind::LitInteger, TokenKind::PuncDot) => false, /* erroneous float */
+            (TokenKind::PuncEq,     TokenKind::PuncEq)         => false, // ==
+            (TokenKind::PuncBang,   TokenKind::PuncEq)         => false, // !=
+            (TokenKind::PuncLt,     TokenKind::PuncEq)         => false, // <=
+            (TokenKind::PuncGt,     TokenKind::PuncEq)         => false, // >=
+            (TokenKind::PuncLt,     TokenKind::PuncLt)         => false, // <<
+            (TokenKind::PuncGt,     TokenKind::PuncGt)         => false, // >>
+            (TokenKind::PuncAnd,    TokenKind::PuncAnd)        => false, // &&
+            (TokenKind::PuncAnd,    TokenKind::PuncAndAnd)     => false, // &&&
+            (TokenKind::PuncAnd,    TokenKind::PuncAndEq)      => false, // &&=
+            (TokenKind::PuncOr,     TokenKind::PuncOr)         => false, // ||
+            (TokenKind::PuncOr,     TokenKind::PuncOrOr)       => false, // |||
+            (TokenKind::PuncOr,     TokenKind::PuncOrEq)       => false, // ||=
+            (TokenKind::PuncPlus,   TokenKind::PuncEq)         => false, // +=
+            (TokenKind::PuncMinus,  TokenKind::PuncEq)         => false, // -=
+            (TokenKind::PuncStar,   TokenKind::PuncEq)         => false, // *=
+            (TokenKind::PuncSlash,  TokenKind::PuncEq)         => false, // /=
+            (TokenKind::PuncModulo, TokenKind::PuncEq)         => false, // %=
+            (TokenKind::PuncAnd,    TokenKind::PuncEq)         => false, // &=
+            (TokenKind::PuncOr,     TokenKind::PuncEq)         => false, // |=
+            (TokenKind::PuncXor,    TokenKind::PuncEq)         => false, // ^=
+            (TokenKind::PuncPlus,   TokenKind::PuncEqEq)       => false, // +==
+            (TokenKind::PuncMinus,  TokenKind::PuncEqEq)       => false, // -==
+            (TokenKind::PuncStar,   TokenKind::PuncEqEq)       => false, // *==
+            (TokenKind::PuncSlash,  TokenKind::PuncEqEq)       => false, // /==
+            (TokenKind::PuncModulo, TokenKind::PuncEqEq)       => false, // %==
+            (TokenKind::PuncAnd,    TokenKind::PuncEqEq)       => false, // &==
+            (TokenKind::PuncOr,     TokenKind::PuncEqEq)       => false, // |==
+            (TokenKind::PuncXor,    TokenKind::PuncEqEq)       => false, // ^==
+            (TokenKind::PuncSlash,  TokenKind::PuncSlash)      => false, // //
+            (TokenKind::PuncSlash,  TokenKind::PuncStar)       => false, // /*
+            (TokenKind::PuncColon,  TokenKind::PuncColon)      => false, // ::
+            (TokenKind::PuncColon,  TokenKind::PuncColonColon) => false, // :::
+            (TokenKind::PuncMinus,  TokenKind::PuncGt)         => false, // ->
+            (TokenKind::PuncLt,     TokenKind::PuncEqEq)       => false, // <==
+            (TokenKind::PuncGt,     TokenKind::PuncEqEq)       => false, // >==
+            (TokenKind::PuncShl,    TokenKind::PuncEq)         => false, // <<=
+            (TokenKind::PuncShr,    TokenKind::PuncEq)         => false, // >>=
+            (TokenKind::PuncLt,     TokenKind::PuncLtEq)       => false, // <, <= vs <<, =
+            (TokenKind::PuncGt,     TokenKind::PuncGtEq)       => false, // >, >= vs >>, =
+            (TokenKind::PuncEq,     TokenKind::PuncEqEq)       => false, // =, == vs ==, =
+            (TokenKind::PuncBang,   TokenKind::PuncEqEq)       => false, // !, == vs !=, =
+            (TokenKind::PuncSlash,  TokenKind::PuncStarEq)     => false, // /, *= vs /*, =
+            (TokenKind::PuncSlash,  TokenKind::PuncSlashEq)    => false, // /, /= vs //, =
+            (TokenKind::PuncMinus,  TokenKind::PuncGtEq)       => false, // -, >= vs ->, =
+            (TokenKind::PuncMinus,  TokenKind::PuncShr)        => false, // -, >> vs ->, >
+            (TokenKind::PuncMinus,  TokenKind::PuncShrEq)      => false, // ->, >= vs -, >>=
+            (TokenKind::PuncLt,     TokenKind::PuncShl)        => false, // <, << vs <<, <
+            (TokenKind::PuncLt,     TokenKind::PuncShlEq)      => false, // <, <<= vs <<, <=
+            (TokenKind::PuncShl,    TokenKind::PuncLt)         => false, // <, << vs <<, <
+            (TokenKind::PuncGt,     TokenKind::PuncShr)        => false, // >, >> vs >>, >
+            (TokenKind::PuncGt,     TokenKind::PuncShrEq)      => false, // >, >> vs >>, >=
+            (TokenKind::PuncShr,    TokenKind::PuncGt)         => false, // >, >> vs >>, >
+            (TokenKind::PuncShr,    TokenKind::PuncEqEq)       => false, // >>, == vs >>=, = vs >>, =,  =  
+            (TokenKind::PuncShr,    TokenKind::PuncGtEq)       => false, // >>, >= vs >, >>, = vs  >>, >, =  
+            (TokenKind::PuncShl,    TokenKind::PuncEqEq)       => false, // <<, == vs <<=, = vs <<, =,  =  
+            (TokenKind::PuncShl,    TokenKind::PuncLtEq)       => false, // <<, <= vs <, <<, = vs  <<, <, =  
+            (TokenKind::LitInteger, TokenKind::PuncDot)        => false, // erroneous float
             // hopefully all other pairs are safe
             _ => true,
         }

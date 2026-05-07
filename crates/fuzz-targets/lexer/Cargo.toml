@@ -1,12 +1,8 @@
 [package]
-name = "vexations-cli"
+name = "lexer"
 version.workspace = true
 edition.workspace = true
 
-[[bin]]
-name = "vexations"
-path = "src/main.rs"
-
 [dependencies]
+afl = "*"
 vexations-compiler = { workspace = true }
-vexations-generator = { workspace = true }

@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-set -xe
-
-rm -r crates/fuzz/corpus crates/fuzz/artifacts crates/fuzz/target

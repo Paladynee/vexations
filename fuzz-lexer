@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+cd crates/fuzz-targets/lexer
+
+RUSTFLAGS='-Ctarget-cpu=native -Awarnings' cargo afl build --release
+
+cd ..
+cd ..
+cd ..
+
+RUSTFLAGS='-Ctarget-cpu=native -Awarnings' cargo afl fuzz \
+    -i crates/fuzz-targets/lexer/fuzz_inputs \
+    -o crates/fuzz-targets/lexer/fuzz_outputs \
+    target/release/lexer

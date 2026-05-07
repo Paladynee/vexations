@@ -9,3 +9,7 @@ perf.data.old
 cobertura.xml
 lcov.info
 tarpaulin-report.html
+
+# fuzzing inputs and outputs
+fuzz_inputs/
+fuzz_outputs/

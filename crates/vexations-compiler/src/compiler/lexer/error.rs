@@ -154,7 +154,7 @@ impl<'src> Display for LexerErrorDisplay<'src> {
         // trim the source substring on the first newline to just show that line
         // todo: backwards search for the previous newline/source start
         let src_line = src_substring_start
-            .split_once('\n')
+            .split_once(['\r', '\n'])
             .map(|(line, _)| line)
             .unwrap_or(src_substring_start);
 
