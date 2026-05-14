@@ -3,8 +3,8 @@ mod particles;
 mod per_char_dispatch;
 mod plumbing;
 
-use core::str;
 use core::mem;
+use core::str;
 
 use crate::compiler::lexer::error::LexerError;
 use crate::frontend::source::VexationsSource;
@@ -86,6 +86,38 @@ impl<'src> Lexer<'src> {
             },
             errors: v4,
         }
+    }
+
+    /// # Safety
+    ///
+    /// - You must have [skipped whitespace](`Lexer::skip_whitespace`).
+    /// - [`Lexer::is_at_end`] must be false.
+    /// - You must not mix [`Lexer::lex_one`] and [`Lexer::lex_all`] together on
+    ///   the same [`Lexer`].
+    #[inline(always)]
+    pub unsafe fn lex_one(
+        &mut self,
+    ) -> (TokenKind, usize, Option<&'src str>, Option<LexerError>) {
+        self.start = self.index;
+        let c = unsafe { self.advance_unchecked() };
+        per_char_dispatch::PER_CHAR_DISPATCHER[c as usize](self);
+        if let Some(err) = self.errors.pop() {
+            return (
+                TokenKind::MetaDummy,
+                err.location.source_offset,
+                None,
+                Some(err),
+            );
+        };
+
+        let token = unsafe { self.tokens.pop().unwrap_unchecked() };
+        let ident = if token.is_identifier_extractable() {
+            Some(unsafe { self.idents.pop().unwrap_unchecked() })
+        } else {
+            None
+        };
+        let span = unsafe { self.spans.pop().unwrap_unchecked() };
+        (token, span, ident, None)
     }
 
     #[inline]

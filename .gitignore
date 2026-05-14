@@ -4,6 +4,10 @@ flamegraph.svg
 perf.data
 perf.data.old
 
+# llvm ir and assembly files at root
+*.s
+*.ll
+
 # coverage reports
 /coverage/
 cobertura.xml

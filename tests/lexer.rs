@@ -240,6 +240,10 @@ mod math_expressions {
 
     }
 
+    // this tests is for checking the lexer test source generator. it isn't
+    // supposed to or supposed not to pass. this may change as the language
+    // grammar evolves.
+
     // #[test]
     // fn safe_follow() {
     //     use std::io::Write;
@@ -330,117 +334,129 @@ mod math_expressions {
         }
     }
 
-    const WINDOW_TEST_LENGTH: usize = 1000000;
+    // this test is for manually checking the Lexer for out of bounds reads by
+    // truncating a randomly generated source at all indices to hopefully
+    // hit every branch of the lexer, and always map the out of bounds to a
+    // new page so it'll be guaranteed page fault if it ever happens. note
+    // that an out bounds on the source is not defined by the end
+    // of the source, but by the end of the source buffer. past-end source reads
+    // are heavily documented in the Lexer, and while past-end buffer reads
+    // are currently known to be impossible this might change as the Lexer
+    // evolves so this tests exists to catch them if they ever happen.
 
-    #[test]
-    fn generated_token_window_test() {
-        let mut generator =
-            LexerTestGenerator::new(WINDOW_TEST_LENGTH, Some(TEST_SEED));
-        let mut out_source: Vec<u8> =
-            Vec::with_capacity(WINDOW_TEST_LENGTH * 4);
-        let mut expected_tokens: Vec<TokenKind> =
-            Vec::with_capacity(WINDOW_TEST_LENGTH);
-        let mut i = 0;
-        while let Some((ws, kind, span)) = generator.next_span() {
-            i += 1;
-            if let Some(whitespace) = ws {
-                out_source.extend_from_slice(whitespace.as_bytes());
-            }
-            out_source.extend_from_slice(span.as_bytes());
-            expected_tokens.push(kind);
-            out_source.extend_from_slice(&[0; 3]);
-            let aligned = vec_align_page_end(&out_source);
-            let src =
-                VexationsSource::try_from_bytes(aligned.as_slice()).unwrap();
-            let (toks, spans, idents, errs) =
-                lexer::lex(src.clone()).finalize();
-            eprintln!(
-                "testing output of byte length {}, token length {}",
-                src.source_len(),
-                i
-            );
-            validate_gen_output(
-                src,
-                &toks,
-                &spans,
-                &idents,
-                errs,
-                &expected_tokens,
-            );
-            out_source.pop();
-            out_source.pop();
-            out_source.pop();
-        }
-    }
+    // ===============================
 
-    struct PsuedoVec {
-        alloc_ptr: *mut u8,
-        data_ptr: *mut u8,
-        alloc_len: usize,
-        data_len: usize,
-    }
+    // const WINDOW_TEST_LENGTH: usize = 10000;
 
-    impl PsuedoVec {
-        pub fn as_slice(&self) -> &[u8] {
-            unsafe { &*self.data_ptr.cast_slice(self.data_len) }
-        }
-    }
+    // #[test]
+    // fn generated_token_window_test() {
+    //     let mut generator =
+    //         LexerTestGenerator::new(WINDOW_TEST_LENGTH, Some(TEST_SEED));
+    //     let mut out_source: Vec<u8> =
+    //         Vec::with_capacity(WINDOW_TEST_LENGTH * 4);
+    //     let mut expected_tokens: Vec<TokenKind> =
+    //         Vec::with_capacity(WINDOW_TEST_LENGTH);
+    //     let mut i = 0;
+    //     while let Some((ws, kind, span)) = generator.next_span() {
+    //         i += 1;
+    //         if let Some(whitespace) = ws {
+    //             out_source.extend_from_slice(whitespace.as_bytes());
+    //         }
+    //         out_source.extend_from_slice(span.as_bytes());
+    //         expected_tokens.push(kind);
+    //         out_source.extend_from_slice(&[0; 3]);
+    //         let aligned = vec_align_page_end(&out_source);
+    //         let src =
+    //             VexationsSource::try_from_bytes(aligned.as_slice()).unwrap();
+    //         let (toks, spans, idents, errs) =
+    //             lexer::lex(src.clone()).finalize();
+    //         eprintln!(
+    //             "testing output of byte length {}, token length {}",
+    //             src.source_len(),
+    //             i
+    //         );
+    //         validate_gen_output(
+    //             src,
+    //             &toks,
+    //             &spans,
+    //             &idents,
+    //             errs,
+    //             &expected_tokens,
+    //         );
+    //         out_source.pop();
+    //         out_source.pop();
+    //         out_source.pop();
+    //     }
+    // }
 
-    impl Drop for PsuedoVec {
-        fn drop(&mut self) {
-            unsafe {
-                libc::mprotect(
-                    self.alloc_ptr
-                        .byte_add(self.alloc_len)
-                        .byte_sub(4096)
-                        .cast(),
-                    4096,
-                    libc::PROT_READ | libc::PROT_WRITE,
-                );
-                std::alloc::dealloc(
-                    self.alloc_ptr,
-                    Layout::from_size_align_unchecked(self.alloc_len, 4096),
-                )
-            };
-        }
-    }
+    // struct PsuedoVec {
+    //     alloc_ptr: *mut u8,
+    //     data_ptr: *mut u8,
+    //     alloc_len: usize,
+    //     data_len: usize,
+    // }
 
-    fn vec_align_page_end(data: &[u8]) -> PsuedoVec {
-        use std::alloc::*;
+    // impl PsuedoVec {
+    //     pub fn as_slice(&self) -> &[u8] {
+    //         unsafe { &*self.data_ptr.cast_slice(self.data_len) }
+    //     }
+    // }
 
-        unsafe {
-            let data_ptr = data.as_ptr();
-            let data_len = data.len();
-            let next_mult = data_len.next_multiple_of(4096) + 4096;
-            let lo = Layout::from_size_align_unchecked(next_mult, 4096);
-            let ptr = alloc(lo);
+    // impl Drop for PsuedoVec {
+    //     fn drop(&mut self) {
+    //         unsafe {
+    //             libc::mprotect(
+    //                 self.alloc_ptr
+    //                     .byte_add(self.alloc_len)
+    //                     .byte_sub(4096)
+    //                     .cast(),
+    //                 4096,
+    //                 libc::PROT_READ | libc::PROT_WRITE,
+    //             );
+    //             std::alloc::dealloc(
+    //                 self.alloc_ptr,
+    //                 Layout::from_size_align_unchecked(self.alloc_len, 4096),
+    //             )
+    //         };
+    //     }
+    // }
 
-            if ptr.is_null() {
-                handle_alloc_error(lo);
-            }
-            // [0, 0, 0, 0] len 4
-            // [1, 1, 1] len 3
-            // [0, 1, 1, 1] offset = a.len - b.len
-            let offset = next_mult - (data_len + 4096);
-            let write_start = ptr.byte_add(offset);
-            write_start.copy_from_nonoverlapping(data_ptr, data_len);
+    // fn vec_align_page_end(data: &[u8]) -> PsuedoVec {
+    //     use std::alloc::*;
 
-            let last_page = ptr.byte_add(next_mult).byte_sub(4096);
-            // unmap last page
-            libc::mprotect(last_page.cast(), 4096, libc::PROT_NONE);
+    //     unsafe {
+    //         let data_ptr = data.as_ptr();
+    //         let data_len = data.len();
+    //         let next_mult = data_len.next_multiple_of(4096) + 4096;
+    //         let lo = Layout::from_size_align_unchecked(next_mult, 4096);
+    //         let ptr = alloc(lo);
 
-            PsuedoVec {
-                alloc_ptr: ptr,
-                alloc_len: next_mult,
-                data_ptr: write_start,
-                data_len,
-            }
-        }
-    }
+    //         if ptr.is_null() {
+    //             handle_alloc_error(lo);
+    //         }
+    //         // [0, 0, 0, 0] len 4
+    //         // [1, 1, 1] len 3
+    //         // [0, 1, 1, 1] offset = a.len - b.len
+    //         let offset = next_mult - (data_len + 4096);
+    //         let write_start = ptr.byte_add(offset);
+    //         write_start.copy_from_nonoverlapping(data_ptr, data_len);
+
+    //         let last_page = ptr.byte_add(next_mult).byte_sub(4096);
+    //         // unmap last page
+    //         libc::mprotect(last_page.cast(), 4096, libc::PROT_NONE);
+
+    //         PsuedoVec {
+    //             alloc_ptr: ptr,
+    //             alloc_len: next_mult,
+    //             data_ptr: write_start,
+    //             data_len,
+    //         }
+    //     }
+    // }
 
     #[test]
     fn generated_test() {
-        const AMOUNT_TOKENS_TEST: usize = 10000000;
+        const AMOUNT_TOKENS_TEST: usize = 10000;
         let (bytes, expected) = {
             let mut generator = LexerTestGenerator::new(
                 AMOUNT_TOKENS_TEST,

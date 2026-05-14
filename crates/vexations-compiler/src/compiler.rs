@@ -4,9 +4,11 @@ use std::path::PathBuf;
 use printerator::PrinterateDisplay;
 
 use crate::compiler::lexer::lex;
+use crate::compiler::parser::Parser;
 use crate::frontend::source::VexationsSource;
 
 pub mod lexer;
+pub mod parser;
 
 pub fn compile(in_files: Vec<PathBuf>, out_file: PathBuf) {
     if in_files.is_empty() {
@@ -19,38 +21,27 @@ pub fn compile(in_files: Vec<PathBuf>, out_file: PathBuf) {
         bytes.extend_from_slice(&[0; 3]);
         let source = VexationsSource::try_from_bytes(&bytes).unwrap();
 
-        let (tokens, spans, idents, errors) = lex(source.clone()).finalize();
+        let mut lexer = lex(source.clone());
 
-        if !errors.is_empty() {
+        if !lexer.errors_view().is_empty() {
             eprintln!("errors during lexing:");
-            for error in errors {
+            for error in lexer.take_errors() {
                 eprintln!(
                     "in file {}\n\t{}",
                     in_file.display(),
                     error.display(source.clone())
                 );
             }
-            continue;
         }
 
-        println!("lex finished successfully");
-        println!(
-            "Tokens: {}",
-            tokens
-                .get(0..(tokens.len().min(10)))
-                .unwrap_or_default()
-                .iter()
-                .map(|t| t.source_repr())
-                .printer()
-        );
-        println!(
-            "Idents: {}",
-            idents
-                .get(0..(idents.len().min(10)))
-                .unwrap_or_default()
-                .iter()
-                .printer()
+        let mut parser = Parser::new(
+            source.clone(),
+            lexer.take_tokens(),
+            lexer.take_spans(),
+            lexer.take_idents(),
         );
     }
+
+    println!("finished compiling");
     todo!()
 }

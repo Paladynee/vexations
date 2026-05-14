@@ -134,7 +134,9 @@ impl<'src> Lexer<'src> {
         &self, start: usize, index: usize,
     ) -> &'src str {
         unsafe {
+            assert_unchecked(index <= self.buffer_len());
             assert_unchecked(start <= index);
+            assert_unchecked(start < self.source_len());
             let s = self.buffer().get_unchecked(start..index);
             str::from_utf8_unchecked(s)
         }
