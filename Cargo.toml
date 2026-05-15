@@ -1,41 +1,28 @@
-[package]
-name = "vexations"
-version = "0.1.0"
-edition = "2021"
-publish = false
-
 [workspace]
+resolver = "2"
 members = [
-    "crates/vexations-generator",
-    "crates/vexations-compiler",
     "crates/vexations-cli",
-    "crates/fuzz-targets/lexer",
-    "crates/bench-targets/lexer",
+    "crates/vexations-compiler",
+    "crates/vexations-generator",
+    "crates/vexations-integration-tests",
 ]
 default-members = [
     "crates/vexations-cli",
 ]
-resolver = "2"
+
 
 [workspace.package]
 version = "0.1.0"
+authors = ["Voxell Paladynee <voxellpaladynee@proton.me>"]
+license = "EUPL-1.2"
+repository = "https://github.com/Paladynee/vexations"
 edition = "2024"
 
-[dependencies]
-
-[dev-dependencies]
-libc = "0.2"
-vexations-compiler = { path = "crates/vexations-compiler" }
-vexations-generator = { path = "crates/vexations-generator" }
-
 [workspace.dependencies]
+vexations-cli = { path = "crates/vexations-cli" }
 vexations-compiler = { path = "crates/vexations-compiler" }
 vexations-generator = { path = "crates/vexations-generator" }
 
 [profile.release]
 opt-level = 3
 lto = true
-
-[profile.fuzzing]
-inherits = "release"
-debug = true

@@ -6,4 +6,4 @@ if [ "$1" == "miri" ]; then
     cmd=(miri test)
 fi
 
-cargo "${cmd[@]}" -p vexations "$@"
+cargo "${cmd[@]}" -p vexations-integration-tests "$@"

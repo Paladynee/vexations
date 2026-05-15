@@ -20,6 +20,7 @@ thread_local! {
 
 fn main() {
     fuzz!(|data: &[u8]| {
+        // beautiful
         TEST_DATA.with(|test_data| {
             TOKENS.with(|tokens| {
                 SPANS.with(|spans| {
@@ -60,6 +61,7 @@ fn process(
     a.extend_from_slice(&[0; 3]);
 
     if let Some(source) = VexationsSource::try_from_bytes(&a) {
+        // SAFETY: read the safety comment below
         let mut lexer =
             unsafe { Lexer::new_reuse_static_allocations(source, b, c, d, e) };
 
@@ -70,6 +72,9 @@ fn process(
         idents.clear();
         b = toks;
         c = spans;
+        // SAFETY: this is sound because we don't read nor write to it, this
+        // casts just the lifetime and the layout is guaranteed to be
+        // the same because lifetimes do not cause monomorphization.
         d = unsafe {
             std::mem::transmute::<Vec<&'_ str>, Vec<&'static str>>(idents)
         };

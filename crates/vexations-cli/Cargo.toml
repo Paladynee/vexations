@@ -3,10 +3,6 @@ name = "vexations-cli"
 version.workspace = true
 edition.workspace = true
 
-[[bin]]
-name = "vexations"
-path = "src/main.rs"
-
 [dependencies]
 vexations-compiler = { workspace = true }
 vexations-generator = { workspace = true }

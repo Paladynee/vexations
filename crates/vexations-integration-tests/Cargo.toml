@@ -1,13 +1,10 @@
 [package]
-name = "lexer-bench"
+name = "vexations-integration-tests"
 version.workspace = true
 edition.workspace = true
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+libc = "0.2"
+vexations-cli = { workspace = true }
 vexations-compiler = { workspace = true }
 vexations-generator = { workspace = true }
-
-[[bench]]
-name = "lexer"
-harness = false

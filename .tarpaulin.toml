@@ -3,8 +3,7 @@ timeout = "300s"
 minimum = 50
 output-format = "Xml"
 exclude-files = [
-    "**/tests/**",
-    "**/examples/**",
+    "crates/vexations-integration-tests/**",
 ]
 workspace = true
 all-features = true

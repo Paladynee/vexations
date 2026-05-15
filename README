@@ -1,0 +1,75 @@
+vexations 
+
+next generation programming language.
+
+vexations is a new approach to programming. we utilize a Rust workspace
+to host a compiler library for efficient code compilation and diagnostics
+for the vexations language, the cli tool for the compiler library, and the test
+infrastructure for the compiler and the language.
+
+the project uses AFL (American Fuzzy Lop) to extensively fuzz unsafe compiler
+targets, and cargo-tarpaulin via Github Workflows for code coverage
+instrumentation.
+
+---
+
+vexations language
+
+vexations is the second iteration of the mumbo language idea. currently,
+the specifications are not public, but the compiler is fully open source;
+feel free to read through the sources.
+
+---
+
+building
+
+build using Cargo.
+
+building the project from scratch requires a nightly Rust compiler and the
+Cargo infrastructure.
+
+run cargo build --release -p vexations-cli to compile the CLI component of
+the compiler.
+
+there are provided shell scripts for development in the bash directory
+written in GNU bash.
+
+run ./bash/test.bash to test all the test targets within /tests. run
+./bash/llvm-ir.bash and ./bash/asm.bash to generate intermediate compilation
+artifacts for in-depth analysis of the codegen for the compiler itself. run
+./bash/tarpaulin.bash to generate a local coverage report. requires
+cargo-tarpaulin. run ./bash/fuzz-lexer.bash to fuzz the lexer target using AFL.
+check out https://rust-fuzz.github.io/book/afl.html for more details on how to
+get AFL working.
+
+---
+
+AI policy
+
+no AI.
+
+here at vexations we do not tolerate the use of AI when writing code. the only
+semi-acceptable use of AI is **meta-management** of legacy/broken build/test/CI
+infrastructures when all side effects of such methods are thoroughly human
+vetted.
+
+the vexations compiler currently does not and MUST never contain any AI
+generated code or comments.
+
+---
+
+contributing
+
+no contribution.
+
+this project is open source but closed contribution. we don't accept
+contributions until further notice.
+
+---
+
+license
+
+EUPL-1.2
+
+this project is licensed under the EUPL-1.2 license, the license text is
+available in the LICENSE file.
