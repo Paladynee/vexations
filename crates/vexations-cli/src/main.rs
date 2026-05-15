@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use vexations_compiler::compiler;
-use vexations_compiler::frontend::token::TokenKind;
 use vexations_generator::GeneratorMode;
 
 #[derive(Debug, Clone, Copy)]

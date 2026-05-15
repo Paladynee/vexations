@@ -1,14 +1,14 @@
-vexations 
+vexations
 
 next generation programming language.
 
-vexations is a new approach to programming. we utilize a Rust workspace
-to host a compiler library for efficient code compilation and diagnostics
-for the vexations language, the cli tool for the compiler library, and the test
+vexations is a new approach to programming. we utilize a Rust workspace to
+host a compiler library for efficient code compilation and diagnostics for
+the vexations language, the cli tool for the compiler library, and the test
 infrastructure for the compiler and the language.
 
-the project uses AFL (American Fuzzy Lop) to extensively fuzz unsafe compiler
-targets, and cargo-tarpaulin via Github Workflows for code coverage
+the project uses AFL (American Fuzzy Lop) to extensively fuzz unsafe
+compiler targets, and cargo-tarpaulin via Github Workflows for code coverage
 instrumentation.
 
 ---
@@ -34,13 +34,14 @@ the compiler.
 there are provided shell scripts for development in the bash directory
 written in GNU bash.
 
-run ./bash/test.bash to test all the test targets within /tests. run
-./bash/llvm-ir.bash and ./bash/asm.bash to generate intermediate compilation
-artifacts for in-depth analysis of the codegen for the compiler itself. run
-./bash/tarpaulin.bash to generate a local coverage report. requires
-cargo-tarpaulin. run ./bash/fuzz-lexer.bash to fuzz the lexer target using AFL.
-check out https://rust-fuzz.github.io/book/afl.html for more details on how to
-get AFL working.
+run bash/test.bash to test all the test targets within /tests.
+run bash/llvm-ir.bash and bash/asm.bash to generate intermediate compilation
+artifacts for in-depth analysis of the codegen for the compiler itself.
+run bash/tarpaulin.bash to generate a local coverage report. requires
+cargo-tarpaulin.
+run bash/fuzz-lexer.bash to fuzz the lexer target using AFL. check out
+https://rust-fuzz.github.io/book/afl.html for more details on how to get
+AFL working.
 
 ---
 
@@ -48,10 +49,10 @@ AI policy
 
 no AI.
 
-here at vexations we do not tolerate the use of AI when writing code. the only
-semi-acceptable use of AI is **meta-management** of legacy/broken build/test/CI
-infrastructures when all side effects of such methods are thoroughly human
-vetted.
+here at vexations we do not tolerate the use of AI when writing code. the
+only semi-acceptable use of AI is **meta-management** of legacy/broken
+build/test/CI infrastructures when all side effects of such methods are
+thoroughly human vetted.
 
 the vexations compiler currently does not and MUST never contain any AI
 generated code or comments.

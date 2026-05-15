@@ -21,9 +21,10 @@ jobs:
       - name: Generate coverage
         run: cargo tarpaulin --workspace --out Xml --timeout 300 --exclude-files tests examples crates/fuzz-targets crates/bench-targets --all-features
       
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cobertura.xml
           fail_ci_if_error: false
           verbose: true
